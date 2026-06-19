@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" viewport="700x200" name="Surfaces & borders" subtitle="Glass fills and hairline borders over black" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 26px 32px; }
+  .wrap { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .cell { height:96px; border-radius:12px; display:flex; align-items:flex-end; padding:12px; }
+  .cap { font-family:var(--font-mono); font-size:10px; color:var(--text-secondary); }
+</style>
+</head>
+<body class="ak-grid-bg">
+  <div class="wrap">
+    <div class="cell" style="background:var(--surface-card); border:1px solid var(--border-subtle); backdrop-filter:blur(8px);"><span class="cap">card / a04</span></div>
+    <div class="cell" style="background:var(--surface-raised); border:1px solid var(--border);"><span class="cap">raised</span></div>
+    <div class="cell" style="background:transparent; border:1px solid var(--border);"><span class="cap">border a08</span></div>
+    <div class="cell" style="background:transparent; border:1px solid var(--border-strong);"><span class="cap">border a18</span></div>
+  </div>
+</body>
+</html>

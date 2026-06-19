@@ -1,0 +1,70 @@
+/* ============================================================
+   BASE — reset, document defaults, shared texture utilities
+   Always-dark. Grid-line background texture + white-glow helpers.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  font-weight: var(--fw-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6, p, figure { margin: 0; }
+
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--white); color: var(--black); }
+
+/* ---- Grid-line background texture (the brand's signature surface) ---- */
+.ak-grid-bg {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-cell) var(--grid-cell);
+}
+/* Radial fade so the grid dissolves into black at the edges */
+.ak-grid-bg--faded {
+  position: relative;
+}
+.ak-grid-bg--faded::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-cell) var(--grid-cell);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+          mask-image: radial-gradient(ellipse at center, #000 0%, transparent 75%);
+}
+
+/* ---- Mono kicker / eyebrow ---- */
+.ak-kicker {
+  font-family: var(--font-mono);
+  font-size: var(--type-kicker-size);
+  letter-spacing: var(--type-kicker-ls);
+  font-weight: var(--type-kicker-weight);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---- Reduced-motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

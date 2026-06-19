@@ -1,0 +1,23 @@
+<!-- @dsCard group="Brand" viewport="700x230" name="Code-syntax headers" subtitle="The signature voice — section titles written as code" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg); padding: 28px 32px; }
+  .item { display:flex; flex-direction:column; gap:3px; padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+  .item:last-child { border:none; }
+  .code { font-family:var(--font-mono); font-size:20px; font-weight:600; color:var(--white); }
+  .code .str { color:var(--gray-300); }
+  .code .fn { color:var(--gray-400); }
+  .meaning { font-family:var(--font-mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="item"><span class="code">echo <span class="str">"Welcome"</span>;</span><span class="meaning">hero</span></div>
+  <div class="item"><span class="code"><span class="fn">$_GET</span>(<span class="str">'About'</span>)</span><span class="meaning">about</span></div>
+  <div class="item"><span class="code"><span class="fn">print</span>(<span class="str">'Stack'</span>)</span><span class="meaning">tech stack</span></div>
+  <div class="item"><span class="code"><span class="fn">console.log</span>(<span class="str">'Projects'</span>)</span><span class="meaning">projects</span></div>
+</body>
+</html>

@@ -1,0 +1,70 @@
+/* ============================================================
+   COLORS — strict monochrome system
+   Black background, white text/accents, grey scale only.
+   No hue, no neon, no colored gradients (per brand brief).
+   Anchors from brief: #000–#0A0A0A bg · #FFFFFF · #1A1A1A
+   #2A2A2A · #6B6B6B · #A0A0A0
+   ============================================================ */
+:root {
+  /* ---- Base neutral scale (dark → light) ---- */
+  --black:    #000000;
+  --ink-950:  #0A0A0A;
+  --ink-900:  #101010;
+  --ink-850:  #141414;
+  --ink-800:  #1A1A1A;
+  --ink-750:  #222222;
+  --ink-700:  #2A2A2A;
+  --ink-600:  #353535;
+  --ink-500:  #444444;
+  --gray-600: #555555;
+  --gray-500: #6B6B6B;
+  --gray-400: #888888;
+  --gray-300: #A0A0A0;
+  --gray-200: #C4C4C4;
+  --gray-100: #E4E4E4;
+  --white:    #FFFFFF;
+
+  /* ---- Alpha whites (glass borders, hairlines, glow) ---- */
+  --white-a04: rgba(255, 255, 255, 0.04);
+  --white-a06: rgba(255, 255, 255, 0.06);
+  --white-a08: rgba(255, 255, 255, 0.08);
+  --white-a12: rgba(255, 255, 255, 0.12);
+  --white-a18: rgba(255, 255, 255, 0.18);
+  --white-a30: rgba(255, 255, 255, 0.30);
+  --white-a60: rgba(255, 255, 255, 0.60);
+
+  /* ---- Semantic surfaces ---- */
+  --bg:            var(--black);
+  --bg-elevated:   var(--ink-950);
+  --bg-section:    var(--ink-900);
+  --surface-card:  var(--white-a04);   /* glass card fill */
+  --surface-raised: var(--ink-850);    /* solid raised panel */
+  --surface-inset: var(--ink-950);
+
+  /* ---- Borders / hairlines ---- */
+  --border-subtle: var(--white-a06);
+  --border:        var(--white-a08);
+  --border-strong: var(--white-a18);
+  --border-solid:  var(--ink-700);
+
+  /* ---- Text ---- */
+  --text-primary:   var(--white);
+  --text-secondary: var(--gray-300);
+  --text-muted:     var(--gray-500);
+  --text-faint:     var(--gray-600);
+  --text-inverse:   var(--black);
+
+  /* ---- Grid texture line color ---- */
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --grid-line-strong: rgba(255, 255, 255, 0.06);
+
+  /* ---- Interaction (monochrome glow, no hue) ---- */
+  --glow-soft:   rgba(255, 255, 255, 0.10);
+  --glow-medium: rgba(255, 255, 255, 0.22);
+  --glow-strong: rgba(255, 255, 255, 0.40);
+
+  /* ---- Accent = pure white (the only "color") ---- */
+  --accent:        var(--white);
+  --accent-muted:  var(--gray-300);
+  --on-accent:     var(--black);
+}

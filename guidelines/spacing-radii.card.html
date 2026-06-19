@@ -1,0 +1,25 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Radii & elevation" subtitle="Crisp corners, black depth shadows" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg); padding: 28px 32px; }
+  .row { display:flex; gap:22px; align-items:center; }
+  .box { width:76px; height:76px; background:var(--surface-raised); border:1px solid var(--border); display:flex; align-items:flex-end; padding:8px; }
+  .t { font-family:var(--font-mono); font-size:10px; color:var(--text-muted); }
+  .col { display:flex; flex-direction:column; gap:8px; align-items:center; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="col"><div class="box" style="border-radius:4px;"></div><span class="t">xs · 4</span></div>
+    <div class="col"><div class="box" style="border-radius:8px;"></div><span class="t">sm · 8</span></div>
+    <div class="col"><div class="box" style="border-radius:12px;"></div><span class="t">md · 12</span></div>
+    <div class="col"><div class="box" style="border-radius:16px;"></div><span class="t">lg · 16</span></div>
+    <div class="col"><div class="box" style="border-radius:24px; box-shadow:var(--shadow-md);"></div><span class="t">+shadow-md</span></div>
+    <div class="col"><div class="box" style="border-radius:50%; box-shadow:var(--shadow-lg);"></div><span class="t">full+lg</span></div>
+  </div>
+</body>
+</html>

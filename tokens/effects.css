@@ -1,0 +1,57 @@
+/* ============================================================
+   EFFECTS — radii, borders, shadows, blur, motion
+   Monochrome: shadows are pure black depth; "glow" is white light.
+   ============================================================ */
+:root {
+  /* ---- Radii (restrained — crisp, not pill-heavy) ---- */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-2xl:  32px;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  /* ---- Hairline borders ---- */
+  --border-width: 1px;
+  --hairline:        var(--border-width) solid var(--border);
+  --hairline-subtle: var(--border-width) solid var(--border-subtle);
+  --hairline-strong: var(--border-width) solid var(--border-strong);
+
+  /* ---- Depth shadows (black) ---- */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 8px 24px rgba(0,0,0,0.5);
+  --shadow-lg:  0 24px 60px rgba(0,0,0,0.6);
+  --shadow-xl:  0 40px 100px rgba(0,0,0,0.7);
+
+  /* ---- White glow (hover / focus accent — NO hue) ---- */
+  --glow-ring:    0 0 0 1px var(--white-a18);
+  --glow-halo-sm: 0 0 24px var(--glow-soft);
+  --glow-halo-md: 0 0 48px var(--glow-medium);
+  --glow-halo-lg: 0 0 80px var(--glow-medium);
+  --glow-text:    0 0 24px rgba(255,255,255,0.35);
+
+  /* ---- Inset (engraved hairline on glass) ---- */
+  --inset-hairline: inset 0 1px 0 var(--white-a08);
+
+  /* ---- Glass blur ---- */
+  --blur-sm: 8px;
+  --blur-md: 16px;
+  --blur-lg: 28px;
+
+  /* ---- Motion ---- */
+  --ease-out:     cubic-bezier(0.16, 1, 0.3, 1);   /* @kind other */
+  --ease-in-out:  cubic-bezier(0.65, 0, 0.35, 1);  /* @kind other */
+  --ease-smooth:  cubic-bezier(0.4, 0, 0.2, 1);    /* @kind other */
+  --dur-fast:   160ms;  /* @kind other */
+  --dur-base:   280ms;  /* @kind other */
+  --dur-slow:   500ms;  /* @kind other */
+  --dur-slower: 900ms;  /* @kind other */
+
+  /* ---- Z layers ---- */
+  --z-bg:      0;    /* @kind other */
+  --z-content: 10;   /* @kind other */
+  --z-header:  100;  /* @kind other */
+  --z-overlay: 1000; /* @kind other */
+}

@@ -1,0 +1,27 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Grid texture" subtitle="Signature background — thin grid lines fading into black" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; }
+  .stage { position:relative; height:220px; background:var(--bg); overflow:hidden; display:flex; align-items:center; padding-left:36px; }
+  .stage::before {
+    content:""; position:absolute; inset:0;
+    background-image:
+      linear-gradient(to right, var(--grid-line-strong) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line-strong) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 90% at 30% 50%, #000 0%, transparent 70%);
+            mask-image: radial-gradient(ellipse 80% 90% at 30% 50%, #000 0%, transparent 70%);
+  }
+  .txt { position:relative; font-family:var(--font-mono); font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-secondary); }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="txt">// 64px grid · rgba(255,255,255,.035) · radial fade</div>
+  </div>
+</body>
+</html>

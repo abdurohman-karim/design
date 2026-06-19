@@ -1,0 +1,72 @@
+/* ============================================================
+   TYPOGRAPHY
+   Display / UI  → Space Grotesk (geometric sans, web3 feel)
+   Technical     → JetBrains Mono (labels, code, metadata, kickers)
+   Large, sparse, wide-tracked headings. Mono for all technical text.
+   ============================================================ */
+:root {
+  /* ---- Families ---- */
+  --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-sans:    'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ---- Type scale (fluid-friendly anchors, px) ---- */
+  --text-3xs: 11px;
+  --text-2xs: 12px;
+  --text-xs:  13px;
+  --text-sm:  14px;
+  --text-base:16px;
+  --text-md:  18px;
+  --text-lg:  22px;
+  --text-xl:  28px;
+  --text-2xl: 36px;
+  --text-3xl: 48px;
+  --text-4xl: 64px;
+  --text-5xl: 88px;
+  --text-6xl: 120px;
+  --text-7xl: 160px;
+
+  /* ---- Weights ---- */
+  --fw-light:    300; /* @kind font */
+  --fw-regular:  400; /* @kind font */
+  --fw-medium:   500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold:     700; /* @kind font */
+
+  /* ---- Line heights ---- */
+  --lh-none:   1;    /* @kind font */
+  --lh-tight:  1.05; /* @kind font */
+  --lh-snug:   1.2;  /* @kind font */
+  --lh-normal: 1.5;  /* @kind font */
+  --lh-relaxed:1.7;  /* @kind font */
+
+  /* ---- Letter spacing ---- */
+  --ls-tighter: -0.04em; /* @kind font */
+  --ls-tight:   -0.02em; /* @kind font */
+  --ls-normal:  0;       /* @kind font */
+  --ls-wide:    0.04em;  /* @kind font */
+  --ls-wider:   0.12em;  /* @kind font */
+  --ls-widest:  0.24em;  /* @kind font */
+
+  /* ---- Semantic roles ---- */
+  --type-hero-size:     clamp(48px, 9vw, 120px); /* @kind font */
+  --type-hero-weight:   var(--fw-medium);   /* @kind font */
+  --type-hero-ls:       var(--ls-tighter);  /* @kind font */
+  --type-hero-lh:       var(--lh-none);     /* @kind font */
+
+  --type-display-size:  clamp(36px, 5.5vw, 64px); /* @kind font */
+  --type-display-weight:var(--fw-medium);   /* @kind font */
+  --type-display-ls:    var(--ls-tight);    /* @kind font */
+  --type-display-lh:    var(--lh-tight);    /* @kind font */
+
+  --type-heading-size:  var(--text-xl);     /* @kind font */
+  --type-heading-weight:var(--fw-medium);   /* @kind font */
+
+  --type-body-size:     var(--text-base);   /* @kind font */
+  --type-body-weight:   var(--fw-regular);  /* @kind font */
+  --type-body-lh:       var(--lh-relaxed);  /* @kind font */
+
+  --type-kicker-size:   var(--text-2xs);    /* @kind font */
+  --type-kicker-ls:     var(--ls-widest);   /* @kind font */
+  --type-kicker-weight: var(--fw-medium);   /* @kind font */
+}

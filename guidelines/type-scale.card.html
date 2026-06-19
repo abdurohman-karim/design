@@ -1,0 +1,24 @@
+<!-- @dsCard group="Type" viewport="700x250" name="Type scale" subtitle="11 → 120px modular steps" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg); padding: 26px 32px; }
+  .item { display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--border-subtle); padding:7px 0; }
+  .tok { font-family:var(--font-mono); font-size:11px; color:var(--text-muted); min-width:70px; }
+  .px { font-family:var(--font-mono); font-size:11px; color:var(--text-faint); min-width:54px; }
+  .demo { font-family:var(--font-display); color:var(--text-primary); font-weight:500; letter-spacing:-0.02em; line-height:1; white-space:nowrap; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="item"><span class="tok">5xl</span><span class="px">88px</span><span class="demo" style="font-size:40px;">Aa</span></div>
+    <div class="item"><span class="tok">3xl</span><span class="px">48px</span><span class="demo" style="font-size:34px;">Backend</span></div>
+    <div class="item"><span class="tok">xl</span><span class="px">28px</span><span class="demo" style="font-size:26px;">Payment systems</span></div>
+    <div class="item"><span class="tok">md</span><span class="px">18px</span><span class="demo" style="font-size:18px;">High-load backend services</span></div>
+    <div class="item" style="border:none;"><span class="tok">sm</span><span class="px">14px</span><span class="demo" style="font-size:14px; font-family:var(--font-mono); font-weight:400;">api · redis · postgres</span></div>
+  </div>
+</body>
+</html>

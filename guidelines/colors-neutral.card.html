@@ -1,0 +1,28 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Neutral scale" subtitle="Black → white, the entire palette" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--bg); padding: 26px 32px; }
+  .scale { display:flex; gap:8px; }
+  .sw { flex:1; }
+  .chip { height:64px; border-radius:8px; border:1px solid var(--border-subtle); }
+  .name { font-family:var(--font-mono); font-size:10px; color:var(--text-secondary); margin-top:8px; }
+  .hex { font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+  <div class="scale">
+    <div class="sw"><div class="chip" style="background:#000000;"></div><div class="name">black</div><div class="hex">#000000</div></div>
+    <div class="sw"><div class="chip" style="background:#0A0A0A;"></div><div class="name">ink-950</div><div class="hex">#0A0A0A</div></div>
+    <div class="sw"><div class="chip" style="background:#1A1A1A;"></div><div class="name">ink-800</div><div class="hex">#1A1A1A</div></div>
+    <div class="sw"><div class="chip" style="background:#2A2A2A;"></div><div class="name">ink-700</div><div class="hex">#2A2A2A</div></div>
+    <div class="sw"><div class="chip" style="background:#6B6B6B;"></div><div class="name">gray-500</div><div class="hex">#6B6B6B</div></div>
+    <div class="sw"><div class="chip" style="background:#A0A0A0;"></div><div class="name">gray-300</div><div class="hex">#A0A0A0</div></div>
+    <div class="sw"><div class="chip" style="background:#C4C4C4;"></div><div class="name">gray-200</div><div class="hex">#C4C4C4</div></div>
+    <div class="sw"><div class="chip" style="background:#FFFFFF;"></div><div class="name">white</div><div class="hex">#FFFFFF</div></div>
+  </div>
+</body>
+</html>
