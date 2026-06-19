@@ -30,6 +30,7 @@
 <script type="text/babel" src="About.jsx"></script>
 <script type="text/babel" src="Stack.jsx"></script>
 <script type="text/babel" src="Projects.jsx"></script>
+<script type="text/babel" src="Repositories.jsx"></script>
 <script type="text/babel" src="Contact.jsx"></script>
 
 <script type="text/babel">
@@ -37,7 +38,7 @@ function App() {
   const [active, setActive] = React.useState('home');
 
   React.useEffect(() => {
-    const ids = ['home', 'about', 'stack', 'projects', 'contact'];
+    const ids = ['home', 'about', 'stack', 'projects', 'repos', 'contact'];
     const spy = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); });
     }, { rootMargin: '-45% 0px -50% 0px' });
@@ -59,6 +60,7 @@ function App() {
         <div data-reveal><About /></div>
         <div data-reveal><Stack /></div>
         <div data-reveal><Projects /></div>
+        <div data-reveal><Repositories /></div>
         <div data-reveal><Contact /></div>
       </main>
     </>

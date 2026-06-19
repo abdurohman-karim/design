@@ -11,7 +11,7 @@ function Header({ active }) {
 
   const links = [
     ['home', 'Home'], ['about', 'About'], ['stack', 'Stack'],
-    ['projects', 'Projects'], ['contact', 'Contact'],
+    ['projects', 'Projects'], ['repos', 'Repos'], ['contact', 'Contact'],
   ];
 
   return (

@@ -3,7 +3,8 @@ const { SectionHeading, Tag, Icon } = window.DS;
 
 function Stack() {
   const groups = [
-    ['server', 'Languages & frameworks', ['PHP', 'Laravel', 'Python', 'aiogram', 'RoadRunner']],
+    ['server', 'Backend', ['PHP', 'Laravel', 'Python', 'aiogram', 'Node.js', 'RoadRunner']],
+    ['code', 'Frontend', ['JavaScript', 'Vue.js', 'SCSS', 'HTML/CSS']],
     ['database', 'Data & infra', ['PostgreSQL', 'Redis', 'Docker', 'GitLab CI/CD']],
     ['bot', 'AI & integrations', ['OpenAI', 'Groq', 'DeepSeek', 'OpenRouter', 'SBP']],
   ];

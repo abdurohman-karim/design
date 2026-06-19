@@ -6,7 +6,7 @@ function Contact() {
   return (
     <section id="contact" className="ak-grid-bg" style={{ padding: 'var(--section-gap) 0 0', borderTop: '1px solid var(--border-subtle)', position: 'relative' }}>
       <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad)' }}>
-        <SectionHeading index={4} title="Contact"
+        <SectionHeading index={5} title="Contact"
           code={<><span style={{ color: 'var(--gray-400)' }}>cout</span> &lt;&lt; <span style={{ color: 'var(--gray-300)' }}>'Contact'</span>;</>}
           lede="Have a payment platform, bot or backend that needs building? Let's talk." />
 
