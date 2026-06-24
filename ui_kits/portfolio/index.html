@@ -10,6 +10,8 @@
 <style>
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); }
+  /* Static header-glass variable — used by Header.jsx */
+  :root { --header-bg: rgba(0, 0, 0, 0.70); }
   [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity .8s var(--ease-out), transform .8s var(--ease-out); }
   [data-reveal].is-in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; } }
@@ -25,6 +27,10 @@
 <script src="../../_ds_bundle.js"></script>
 <script>window.DS = window.AbdurohmanKarimPortfolioDesignSystem_bf6e8b;</script>
 
+<!-- GSAP + ScrollTrigger (used by Stack.jsx card-deck animation) -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" crossorigin="anonymous"></script>
+
 <script type="text/babel" src="Header.jsx"></script>
 <script type="text/babel" src="Hero.jsx"></script>
 <script type="text/babel" src="About.jsx"></script>
@@ -34,16 +40,20 @@
 <script type="text/babel" src="Contact.jsx"></script>
 
 <script type="text/babel">
+gsap.registerPlugin(ScrollTrigger);
+
 function App() {
   const [active, setActive] = React.useState('home');
 
   React.useEffect(() => {
+    /* ── Scroll-spy for nav highlight ── */
     const ids = ['home', 'about', 'stack', 'projects', 'repos', 'contact'];
     const spy = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); });
     }, { rootMargin: '-45% 0px -50% 0px' });
     ids.forEach((id) => { const el = document.getElementById(id); if (el) spy.observe(el); });
 
+    /* ── Reveal animation on scroll ── */
     const reveal = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); reveal.unobserve(e.target); } });
     }, { rootMargin: '0px 0px -10% 0px' });
@@ -58,7 +68,7 @@ function App() {
       <main>
         <Hero />
         <div data-reveal><About /></div>
-        <div data-reveal><Stack /></div>
+        <Stack />
         <div data-reveal><Projects /></div>
         <div data-reveal><Repositories /></div>
         <div data-reveal><Contact /></div>

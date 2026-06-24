@@ -1,39 +1,230 @@
-// Portfolio — Tech Stack. print('Stack'), grouped tags.
+// Portfolio — Stack. print('Stack'), GSAP card-deck reveal (pinned section).
 const { SectionHeading, Tag, Icon } = window.DS;
 
+const GROUPS = [
+  { icon: 'server',   label: 'Backend',          items: ['PHP', 'Laravel', 'Python', 'aiogram', 'Node.js', 'RoadRunner'] },
+  { icon: 'code',     label: 'Frontend',          items: ['JavaScript', 'Vue.js', 'SCSS', 'HTML/CSS'] },
+  { icon: 'database', label: 'Data & Infra',      items: ['PostgreSQL', 'Redis', 'Docker', 'GitLab CI/CD'] },
+  { icon: 'bot',      label: 'AI & Integrations', items: ['OpenAI', 'Groq', 'DeepSeek', 'OpenRouter', 'SBP'] },
+];
+
 function Stack() {
-  const groups = [
-    ['server', 'Backend', ['PHP', 'Laravel', 'Python', 'aiogram', 'Node.js', 'RoadRunner']],
-    ['code', 'Frontend', ['JavaScript', 'Vue.js', 'SCSS', 'HTML/CSS']],
-    ['database', 'Data & infra', ['PostgreSQL', 'Redis', 'Docker', 'GitLab CI/CD']],
-    ['bot', 'AI & integrations', ['OpenAI', 'Groq', 'DeepSeek', 'OpenRouter', 'SBP']],
-  ];
+  const sectionRef = React.useRef(null);
+  const cardsRef   = React.useRef([]);
+  const counterRef = React.useRef(null);
+  const progRef    = React.useRef(null);
+  const n = GROUPS.length;
+
+  React.useEffect(() => {
+    const section = sectionRef.current;
+    const cards   = cardsRef.current;
+    const isMob   = window.innerWidth < 768;
+
+    /* depth per "behind" layer */
+    const LAYER = { y: isMob ? 8 : 14, scale: 0.03, opacityStep: 0.22 };
+    const EXIT_Y = -(window.innerHeight * 0.9);
+    const ROTS   = [3.2, -3.5, 2.8]; /* alternating z-rotation on exit */
+
+    /* ── seed initial stack state ── */
+    cards.forEach((card, i) => {
+      gsap.set(card, {
+        xPercent: -50,
+        yPercent: -50,
+        y:        i * LAYER.y,
+        scale:    1 - i * LAYER.scale,
+        opacity:  i === 0 ? 1 : Math.max(0.28, 1 - i * LAYER.opacityStep),
+        rotation: 0,
+        zIndex:   n - i,
+      });
+    });
+
+    /* ── build transition timeline (n-1 steps, each unit=1) ── */
+    const tl = gsap.timeline({ defaults: { ease: 'none' } });
+
+    for (let step = 0; step < n - 1; step++) {
+      const rot = isMob ? 0 : ROTS[step % ROTS.length];
+
+      /* active card flies off upward */
+      tl.to(cards[step], {
+        y: EXIT_Y, scale: 0.80, opacity: 0, rotation: rot,
+        xPercent: -50, yPercent: -50, duration: 1,
+      }, step);
+
+      /* all remaining cards advance one layer */
+      for (let j = step + 1; j < n; j++) {
+        const rel = j - step - 1; /* 0 = next active, 1 = second, … */
+        tl.to(cards[j], {
+          y:       rel * LAYER.y,
+          scale:   1 - rel * LAYER.scale,
+          opacity: rel === 0 ? 1 : Math.max(0.28, 1 - rel * LAYER.opacityStep),
+          rotation: 0,
+          xPercent: -50, yPercent: -50, duration: 1,
+        }, step);
+      }
+    }
+
+    /* ── ScrollTrigger pin + scrub ── */
+    const st = ScrollTrigger.create({
+      trigger:   section,
+      pin:       true,
+      scrub:     1.2,
+      start:     'top top',
+      end:       `+=${window.innerHeight * (n - 1)}`,
+      animation: tl,
+      onUpdate: (self) => {
+        const idx = Math.min(n - 1, Math.floor(self.progress * n));
+        if (counterRef.current) counterRef.current.textContent = String(idx + 1).padStart(2, '0');
+        if (progRef.current)    progRef.current.style.transform = `scaleY(${self.progress})`;
+      },
+    });
+
+    const onResize = () => ScrollTrigger.refresh();
+    window.addEventListener('resize', onResize);
+    return () => { st.kill(); window.removeEventListener('resize', onResize); };
+  }, []);
+
   return (
-    <section id="stack" style={{ padding: 'var(--section-gap) 0', borderTop: '1px solid var(--border-subtle)' }}>
-      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad)' }}>
+    <section id="stack" ref={sectionRef} style={{
+      position: 'relative',
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      borderTop: '1px solid var(--border-subtle)',
+    }}>
+
+      {/* ── Section heading (stays fixed at top of the pin) ── */}
+      <div style={{
+        flexShrink: 0,
+        width: '100%',
+        maxWidth: 'var(--container-max)',
+        margin: '0 auto',
+        padding: '52px var(--container-pad) 0',
+        boxSizing: 'border-box',
+      }}>
         <SectionHeading index={2} title="Stack"
           code={<><span style={{ color: 'var(--gray-400)' }}>print</span>(<span style={{ color: 'var(--gray-300)' }}>'Stack'</span>)</>}
           lede="The tools I reach for to ship reliable, high-load backend systems." />
+      </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginTop: 48 }}>
-          {groups.map(([icon, label, items], i) => (
-            <div key={label} style={{
-              display: 'grid', gridTemplateColumns: 'minmax(180px, 280px) 1fr', gap: 32,
-              alignItems: 'center', padding: '28px 0',
-              borderTop: '1px solid var(--border-subtle)',
-              borderBottom: i === groups.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-            }}>
+      {/* ── Card deck ── */}
+      <div style={{
+        flex: 1,
+        position: 'relative',
+        perspective: '1200px',
+        minHeight: 0,
+      }}>
+        {GROUPS.map((g, i) => (
+          <div
+            key={g.label}
+            ref={el => cardsRef.current[i] = el}
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              width: 'min(640px, calc(100vw - 48px))',
+              borderRadius: 20,
+              border: '1px solid var(--border)',
+              background: 'var(--surface-raised)',
+              boxShadow: '0 28px 56px rgba(0,0,0,0.55), 0 0 0 1px var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              willChange: 'transform, opacity',
+              transformStyle: 'preserve-3d',
+              overflow: 'hidden',
+            }}
+          >
+            {/* card body */}
+            <div style={{ padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 26 }}>
+              {/* header row: icon + label */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ color: 'var(--text-muted)' }}><Icon name={icon} size={22} duotone /></span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>{label}</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  <Icon name={g.icon} size={26} duotone />
+                </span>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 11,
+                  letterSpacing: '0.18em', textTransform: 'uppercase',
+                  color: 'var(--text-muted)',
+                }}>
+                  {g.label}
+                </span>
               </div>
+
+              {/* tech tags */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {items.map((t) => <Tag key={t}>{t}</Tag>)}
+                {g.items.map(t => <Tag key={t}>{t}</Tag>)}
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* card footer: skill-set label + card number */}
+            <div style={{
+              padding: '14px 40px',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 10,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: 'var(--text-faint)',
+              }}>
+                skill set
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em',
+                color: 'var(--text-muted)',
+              }}>
+                {String(i + 1).padStart(2, '0')}
+                <span style={{ color: 'var(--text-faint)' }}> / {String(n).padStart(2, '0')}</span>
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
+
+      {/* ── Progress indicator (right side) ── */}
+      <div style={{
+        position: 'absolute',
+        right: 28,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}>
+        <span ref={counterRef} style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11,
+          letterSpacing: '0.08em', color: 'var(--text-muted)',
+        }}>
+          01
+        </span>
+        <div style={{
+          width: 1, height: 64,
+          background: 'var(--border)',
+          borderRadius: 1,
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          <div ref={progRef} style={{
+            position: 'absolute', inset: 0,
+            background: 'var(--text-secondary)',
+            transformOrigin: 'top center',
+            transform: 'scaleY(0)',
+            borderRadius: 1,
+          }} />
+        </div>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11,
+          letterSpacing: '0.08em', color: 'var(--text-faint)',
+        }}>
+          {String(n).padStart(2, '0')}
+        </span>
+      </div>
+
     </section>
   );
 }

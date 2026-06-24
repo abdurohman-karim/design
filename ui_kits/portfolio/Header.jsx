@@ -18,7 +18,7 @@ function Header({ active }) {
     <header style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
       borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
-      background: scrolled ? 'rgba(0,0,0,0.6)' : 'transparent',
+      background: scrolled ? 'var(--header-bg)' : 'transparent',
       backdropFilter: scrolled ? 'blur(var(--blur-md))' : 'none',
       WebkitBackdropFilter: scrolled ? 'blur(var(--blur-md))' : 'none',
       transition: 'all var(--dur-base) var(--ease-out)',
