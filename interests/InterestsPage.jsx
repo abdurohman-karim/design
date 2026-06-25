@@ -139,7 +139,7 @@
      Rendered via CSS mask + currentColor so they stay monochrome and follow
      the active theme regardless of the SVG's own fills.
      ───────────────────────────────────────────────────────────────────────── */
-  const ICON_BASE = '../assets/icons/interests/';
+  const ICON_BASE = '/assets/icons/interests/';
   function IceIcon({ file, size = 36 }) {
     const url = `url("${ICON_BASE}${file}")`;
     return (

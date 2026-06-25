@@ -5,7 +5,7 @@
 <script>if(localStorage.getItem('ak-theme')==='light')document.documentElement.setAttribute('data-theme','light');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Abdurohman Karim — Backend Developer</title>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="/styles.css">
 <style>
   html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); }
@@ -23,26 +23,44 @@
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-<script src="_ds_bundle.js"></script>
+<script src="/_ds_bundle.js"></script>
 <script>window.DS = window.AbdurohmanKarimPortfolioDesignSystem_bf6e8b;</script>
 
+<!-- GSAP + ScrollTrigger (used by Stack.jsx card-deck animation) -->
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" crossorigin="anonymous"></script>
 
-<script type="text/babel" src="ui_kits/portfolio/Header.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/DecryptBtn.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/Hero.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/About.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/Stack.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/Projects.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/Repositories.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/Contact.jsx"></script>
-<script type="text/babel" src="ui_kits/portfolio/CustomCursor.jsx"></script>
+<!-- All components load once into this single shell (SPA) — absolute paths so
+     they resolve correctly even when the shell is served for /interests -->
+<script type="text/babel" src="/ui_kits/portfolio/Header.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/DecryptBtn.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Hero.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/About.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Stack.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Projects.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Repositories.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Contact.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/CustomCursor.jsx"></script>
+<script type="text/babel" src="/interests/InterestsPage.jsx"></script>
 
 <script type="text/babel">
 gsap.registerPlugin(ScrollTrigger);
 
-function App() {
+/* Normalise any path to one of two routes */
+const routeOf = (p) => (p.startsWith('/interests') ? '/interests/' : '/');
+
+/* Retry-scroll to a hash target — sections mount after a route switch */
+function scrollToHash(hash) {
+  const tryIt = (n) => {
+    const el = document.querySelector(hash);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else if (n < 12) requestAnimationFrame(() => tryIt(n + 1));
+  };
+  tryIt(0);
+}
+
+/* ── Home route: hero + sections, scroll-spy + reveal ── */
+function HomeRoute() {
   const [active, setActive] = React.useState('home');
 
   React.useEffect(() => {
@@ -57,12 +75,14 @@ function App() {
     }, { rootMargin: '0px 0px -10% 0px' });
     document.querySelectorAll('[data-reveal]').forEach((el) => reveal.observe(el));
 
-    return () => { spy.disconnect(); reveal.disconnect(); };
+    // Stack creates its ScrollTrigger on mount; refresh once layout settles
+    const raf = requestAnimationFrame(() => ScrollTrigger.refresh());
+
+    return () => { spy.disconnect(); reveal.disconnect(); cancelAnimationFrame(raf); };
   }, []);
 
   return (
     <>
-      <CustomCursor />
       <Header active={active} />
       <main>
         <Hero />
@@ -75,6 +95,78 @@ function App() {
     </>
   );
 }
+
+/* ── Interests route ── */
+function InterestsRoute() {
+  return (
+    <>
+      <Header active="interests" />
+      <InterestsPage />
+    </>
+  );
+}
+
+/* ── Client-side router (History API) ── */
+function App() {
+  const [route, setRoute] = React.useState(() => routeOf(window.location.pathname));
+  const pendingScroll = React.useRef(null);
+
+  /* Intercept internal link clicks → pushState instead of full navigation */
+  React.useEffect(() => {
+    const onClick = (e) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target.closest('a');
+      if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+      const href = a.getAttribute('href');
+      if (!href) return;
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin) return;            // external
+      const p = url.pathname;
+      if (p !== '/' && p !== '/interests' && p !== '/interests/') return; // not routable → let browser handle
+      e.preventDefault();
+
+      const target = routeOf(p);
+      const full = p + url.hash;
+      if (target !== route) {
+        window.history.pushState({}, '', full);
+        pendingScroll.current = url.hash || 'top';
+        setRoute(target);
+      } else {
+        window.history.pushState({}, '', full);
+        if (url.hash) scrollToHash(url.hash);
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [route]);
+
+  /* Back / forward */
+  React.useEffect(() => {
+    const onPop = () => {
+      pendingScroll.current = window.location.hash || 'top';
+      setRoute(routeOf(window.location.pathname));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  /* After a route change, consume the pending scroll intent */
+  React.useEffect(() => {
+    const s = pendingScroll.current;
+    pendingScroll.current = null;
+    if (s === 'top') window.scrollTo(0, 0);
+    else if (s) scrollToHash(s);
+  }, [route]);
+
+  return (
+    <>
+      <CustomCursor />
+      {route === '/interests/' ? <InterestsRoute /> : <HomeRoute />}
+    </>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>

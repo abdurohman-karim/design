@@ -1,2 +1,10 @@
 [build]
   publish = "."
+
+# SPA fallback — any path without a matching static file serves the shell,
+# so direct visits / refreshes on /interests render via the client router.
+# Real files (.jsx, .css, .js, /assets/*) are served normally and bypass this.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
