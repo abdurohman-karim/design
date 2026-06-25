@@ -135,59 +135,32 @@
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Mountain-gear icons — match DS convention: 24×24, strokeWidth 2, round
+     Mountain-gear icons — user-supplied SVGs in assets/icons/interests.
+     Rendered via CSS mask + currentColor so they stay monochrome and follow
+     the active theme regardless of the SVG's own fills.
      ───────────────────────────────────────────────────────────────────────── */
-  const svgBase = {
-    width: 30, height: 30, viewBox: '0 0 24 24', fill: 'none',
-    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
-  };
-  const IceAxe = () => (
-    <svg {...svgBase}>
-      <path d="M6 19 L17 8" />
-      <path d="M17 8 C19 6 20 5 21 6" />
-      <path d="M17 8 C16 5 15 4 13 4" />
-      <path d="M6 19 L5 21" />
-    </svg>
-  );
-  const Crampons = () => (
-    <svg {...svgBase}>
-      <path d="M5 9 C5 7 19 7 19 9" />
-      <path d="M6 9 L5 14 M9 9 L8 13 M12 9 L12 15 M15 9 L16 13 M18 9 L19 14" />
-    </svg>
-  );
-  const Carabiner = () => (
-    <svg {...svgBase}>
-      <path d="M12 3 C7.5 3 7.5 21 12 21 C16.5 21 16.5 3 12 3 Z" />
-      <path d="M12 4 L12 9" />
-    </svg>
-  );
-  const Helmet = () => (
-    <svg {...svgBase}>
-      <path d="M5 14 a7 7 0 0 1 14 0" />
-      <path d="M3 14 L21 14" />
-      <path d="M10 8 L10 7 M14 8 L14 7" />
-    </svg>
-  );
-  const Rope = () => (
-    <svg {...svgBase}>
-      <circle cx="9" cy="8" r="5" />
-      <path d="M9 3 L11 5 M7 4 L9 6 M11 8 L13 10 M13 12 C15 14 16 17 14 20" />
-    </svg>
-  );
-  const Peak = () => (
-    <svg {...svgBase}>
-      <path d="M3 18 L9 8 L13 14 L16 9 L21 18 Z" />
-      <path d="M16 9 L16 3 L20 4.5 L16 6" />
-    </svg>
-  );
+  const ICON_BASE = '../assets/icons/interests/';
+  function IceIcon({ file, size = 36 }) {
+    const url = `url("${ICON_BASE}${file}")`;
+    return (
+      <span aria-hidden="true" style={{
+        display: 'inline-block', width: size, height: size,
+        background: 'currentColor',
+        WebkitMaskImage: url, maskImage: url,
+        WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+        WebkitMaskPosition: 'center', maskPosition: 'center',
+        WebkitMaskSize: 'contain', maskSize: 'contain',
+      }} />
+    );
+  }
 
   const CARDS = [
-    { icon: IceAxe,    title: 'Альпинизм',    desc: 'Высотные восхождения, многодневные маршруты и работа в связке.' },
-    { icon: Crampons,  title: 'Ледолазание',  desc: 'Вертикальный лёд, замёрзшие водопады и техника на передних зубьях.' },
-    { icon: Carabiner, title: 'Скалолазание', desc: 'Трэд и спорт-маршруты, страховочные станции, чтение рельефа.' },
-    { icon: Helmet,    title: 'Безопасность', desc: 'Оценка лавин, погодные окна и дисциплина горной страховки.' },
-    { icon: Rope,      title: 'Верёвки',      desc: 'Узлы, бухтование, дюльфер и спасработы на сложном рельефе.' },
-    { icon: Peak,      title: 'Skyridge',     desc: 'Сообщество людей, влюблённых в горы. Нажми, чтобы присоединиться.', featured: true },
+    { icon: 'ice-axe.svg',   title: 'Альпинизм',    desc: 'Высотные восхождения, многодневные маршруты и работа в связке.' },
+    { icon: 'crampon.svg',   title: 'Ледолазание',  desc: 'Вертикальный лёд, замёрзшие водопады и техника на передних зубьях.' },
+    { icon: 'carabiner.svg', title: 'Скалолазание', desc: 'Трэд и спорт-маршруты, страховочные станции, чтение рельефа.' },
+    { icon: 'helmet.svg',    title: 'Безопасность', desc: 'Оценка лавин, погодные окна и дисциплина горной страховки.' },
+    { icon: 'rope.svg',      title: 'Верёвки',      desc: 'Узлы, бухтование, дюльфер и спасработы на сложном рельефе.' },
+    { icon: 'peak.svg',      title: 'Skyridge',     desc: 'Сообщество людей, влюблённых в горы. Нажми, чтобы присоединиться.', featured: true },
   ];
 
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -366,7 +339,7 @@
   /* ─────────────────────────────────────────────────────────────────────────
      IceCard component
      ───────────────────────────────────────────────────────────────────────── */
-  function IceCard({ icon: IconCmp, title, desc, featured, onOpen }) {
+  function IceCard({ icon, title, desc, featured, onOpen }) {
     const cardRef = React.useRef(null);
     const veinsRef = React.useRef(null);
     const svgRef  = React.useRef(null);
@@ -435,7 +408,7 @@
         <div ref={dustRef} className="ice-card__dust" aria-hidden="true" />
 
         <div className="ice-card__body">
-          <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><IconCmp /></span>
+          <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><IceIcon file={icon} /></span>
           <h3 style={{
             fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 500,
             color: 'var(--white)', margin: '6px 0 0', letterSpacing: '-0.02em',
