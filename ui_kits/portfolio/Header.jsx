@@ -16,6 +16,45 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-frost-css'))
     }
     .ak-frost-link:hover { text-shadow: 0 0 12px var(--glow-medium); }
     .ak-frost-link:hover::after { opacity: 0.5; }
+
+    /* ── Mobile menu ── */
+    .ak-burger { display: none; }
+    .ak-mobile-menu {
+      position: fixed; inset: 0; z-index: 90;
+      display: flex; flex-direction: column;
+      padding: 96px var(--container-pad) 40px;
+      gap: 2px;
+      background: var(--header-bg);
+      backdrop-filter: blur(var(--blur-lg));
+      -webkit-backdrop-filter: blur(var(--blur-lg));
+      opacity: 0; visibility: hidden;
+      transform: translateY(-10px);
+      transition: opacity var(--dur-base) var(--ease-out),
+                  transform var(--dur-base) var(--ease-out),
+                  visibility var(--dur-base) var(--ease-out);
+    }
+    .ak-mobile-menu.is-open { opacity: 1; visibility: visible; transform: none; }
+    .ak-mobile-menu a {
+      opacity: 0; transform: translateY(12px);
+      transition: opacity .45s var(--ease-out), transform .45s var(--ease-out),
+                  color var(--dur-base) var(--ease-out);
+    }
+    .ak-mobile-menu.is-open a { opacity: 1; transform: none; }
+    .ak-mobile-menu.is-open a:nth-child(1) { transition-delay: .05s; }
+    .ak-mobile-menu.is-open a:nth-child(2) { transition-delay: .09s; }
+    .ak-mobile-menu.is-open a:nth-child(3) { transition-delay: .13s; }
+    .ak-mobile-menu.is-open a:nth-child(4) { transition-delay: .17s; }
+    .ak-mobile-menu.is-open a:nth-child(5) { transition-delay: .21s; }
+    .ak-mobile-menu.is-open a:nth-child(6) { transition-delay: .25s; }
+    .ak-mobile-menu.is-open a:nth-child(7) { transition-delay: .29s; }
+
+    @media (max-width: 720px) {
+      .ak-burger { display: grid; }
+      .ak-hide-mobile { display: none !important; }
+    }
+    @media (min-width: 721px) {
+      .ak-mobile-menu { display: none !important; }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -44,6 +83,7 @@ const MoonIcon = () => (
 
 function Header({ active }) {
   const [scrolled, setScrolled] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [theme, setTheme] = React.useState(
     () => document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
   );
@@ -52,6 +92,21 @@ function Header({ active }) {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  /* Lock body scroll + Esc-to-close while the mobile menu is open */
+  React.useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    if (menuOpen) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  /* Close menu if viewport grows past the mobile breakpoint */
+  React.useEffect(() => {
+    const onResize = () => { if (window.innerWidth > 720) setMenuOpen(false); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const toggleTheme = React.useCallback(() => {
@@ -144,8 +199,66 @@ function Header({ active }) {
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>
 
-          <Badge dot>Available</Badge>
+          <span className="ak-hide-mobile"><Badge dot>Available</Badge></span>
+
+          {/* burger — mobile only */}
+          <button
+            className="ak-burger"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            style={{
+              width: 38, height: 38, placeItems: 'center',
+              border: '1px solid var(--border-strong)', borderRadius: 10,
+              background: 'var(--surface-card)', backdropFilter: 'blur(var(--blur-sm))',
+              color: 'var(--text-secondary)', cursor: 'pointer', boxShadow: 'var(--inset-hairline)',
+            }}
+          >
+            <span style={{ position: 'relative', width: 18, height: 12, display: 'block' }}>
+              {[0, 1, 2].map((i) => (
+                <span key={i} style={{
+                  position: 'absolute', left: 0, right: 0, height: 1.5, borderRadius: 1,
+                  background: menuOpen ? 'var(--white)' : 'currentColor',
+                  top: i === 0 ? 0 : i === 1 ? 5.25 : 10.5,
+                  transformOrigin: 'center',
+                  transform: menuOpen
+                    ? (i === 0 ? 'translateY(5.25px) rotate(45deg)'
+                      : i === 1 ? 'scaleX(0)' : 'translateY(-5.25px) rotate(-45deg)')
+                    : 'none',
+                  opacity: menuOpen && i === 1 ? 0 : 1,
+                  transition: 'transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out), background var(--dur-base) var(--ease-out)',
+                }} />
+              ))}
+            </span>
+          </button>
         </div>
+      </div>
+
+      {/* mobile menu overlay */}
+      <div className={`ak-mobile-menu${menuOpen ? ' is-open' : ''}`} onClick={() => setMenuOpen(false)}>
+        {links.map(([id, label], i) => (
+          <a key={id} href={'/#' + id} onClick={() => setMenuOpen(false)} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            fontFamily: 'var(--font-mono)', fontSize: 17, letterSpacing: '0.06em',
+            textTransform: 'uppercase', padding: '20px 4px', textDecoration: 'none',
+            borderBottom: '1px solid var(--border-subtle)',
+            color: active === id ? 'var(--white)' : 'var(--text-secondary)',
+          }}>
+            <span>{label}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{String(i + 1).padStart(2, '0')}</span>
+          </a>
+        ))}
+        <a href="/interests/" onClick={() => setMenuOpen(false)} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontFamily: 'var(--font-mono)', fontSize: 17, letterSpacing: '0.06em',
+          textTransform: 'uppercase', padding: '20px 4px', textDecoration: 'none',
+          borderBottom: '1px solid var(--border-subtle)',
+          color: active === 'interests' ? 'var(--white)' : 'var(--text-secondary)',
+          textShadow: '0 0 14px var(--glow-medium)',
+        }}>
+          <span>Interests</span>
+          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{String(links.length + 1).padStart(2, '0')}</span>
+        </a>
       </div>
     </header>
   );
