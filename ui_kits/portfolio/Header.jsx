@@ -1,6 +1,25 @@
 // Portfolio — Header / nav. Fixed, glass on scroll, monogram logo + theme toggle.
 const { Badge } = window.DS;
 
+/* Frost hover for the Interests nav link — injected once, monochrome white bloom */
+if (typeof document !== 'undefined' && !document.getElementById('ak-frost-css')) {
+  const s = document.createElement('style');
+  s.id = 'ak-frost-css';
+  s.textContent = `
+    .ak-frost-link { position: relative; transition: color var(--dur-base) var(--ease-out), text-shadow var(--dur-base) var(--ease-out); }
+    .ak-frost-link::after {
+      content: attr(data-frost);
+      position: absolute; left: 14px; top: 8px;
+      color: var(--white); filter: blur(7px);
+      opacity: 0; transition: opacity var(--dur-base) var(--ease-out);
+      pointer-events: none; white-space: nowrap; letter-spacing: inherit;
+    }
+    .ak-frost-link:hover { text-shadow: 0 0 12px var(--glow-medium); }
+    .ak-frost-link:hover::after { opacity: 0.5; }
+  `;
+  document.head.appendChild(s);
+}
+
 const SunIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,7 +87,7 @@ function Header({ active }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         {/* logo */}
-        <a href="#home" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+        <a href="/#home" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
           <span style={{
             width: 38, height: 38, display: 'grid', placeItems: 'center',
             border: '1px solid var(--border-strong)', borderRadius: 10,
@@ -83,7 +102,7 @@ function Header({ active }) {
         {/* nav */}
         <nav style={{ display: 'flex', gap: 4 }} className="ak-nav">
           {links.map(([id, label]) => (
-            <a key={id} href={'#' + id} style={{
+            <a key={id} href={'/#' + id} style={{
               fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.08em',
               textTransform: 'uppercase', padding: '8px 14px', borderRadius: 'var(--radius-pill)',
               color: active === id ? 'var(--white)' : 'var(--text-muted)',
@@ -95,6 +114,15 @@ function Header({ active }) {
             onMouseLeave={(e) => { if (active !== id) e.currentTarget.style.color = 'var(--text-muted)'; }}
             >{label}</a>
           ))}
+          {/* Interests — separate page, icy frost hover */}
+          <a href="/interests/" className="ak-frost-link" data-frost="Interests" style={{
+            fontFamily: 'var(--font-mono)', fontSize: 12, letterSpacing: '0.08em',
+            textTransform: 'uppercase', padding: '8px 14px', borderRadius: 'var(--radius-pill)',
+            color: active === 'interests' ? 'var(--white)' : 'var(--text-muted)',
+            background: active === 'interests' ? 'var(--surface-card)' : 'transparent',
+            border: active === 'interests' ? '1px solid var(--border)' : '1px solid transparent',
+            textShadow: active === 'interests' ? '0 0 12px var(--glow-medium)' : 'none',
+          }}>Interests</a>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
