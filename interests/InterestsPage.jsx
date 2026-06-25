@@ -12,6 +12,7 @@
       .ice-card {
         position: relative;
         overflow: hidden;
+        isolation: isolate;                 /* keep blend modes inside the card */
         border-radius: var(--radius-lg);
         border: 1px solid var(--border);
         padding: 30px 28px;
@@ -20,27 +21,47 @@
         flex-direction: column;
         gap: 14px;
         cursor: pointer;
+        /* Layer 1 — ice depth: uneven thickness via stacked cold gradients */
         background:
-          repeating-linear-gradient(115deg, var(--white-a04) 0 2px, transparent 2px 8px),
-          repeating-linear-gradient(202deg, var(--white-a04) 0 1px, transparent 1px 10px),
-          radial-gradient(120% 80% at 18% 0%, var(--white-a08), transparent 60%),
-          radial-gradient(100% 70% at 92% 100%, var(--white-a06), transparent 55%),
-          var(--surface-card);
+          radial-gradient(140% 120% at 25% 12%, var(--white-a08), transparent 55%),
+          radial-gradient(120% 100% at 85% 95%, var(--white-a06), transparent 50%),
+          linear-gradient(160deg, var(--white-a06), transparent 45%, var(--white-a04)),
+          var(--surface-raised);
         backdrop-filter: blur(var(--blur-sm));
         -webkit-backdrop-filter: blur(var(--blur-sm));
-        box-shadow: var(--inset-hairline);
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12);
         transition: transform var(--dur-base) var(--ease-out),
                     border-color var(--dur-base) var(--ease-out),
                     box-shadow var(--dur-base) var(--ease-out);
       }
+      /* Layer 2 — frosted-glass grain: feTurbulence noise (monochrome), blended */
+      .ice-card::before {
+        content: '';
+        position: absolute; inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+        opacity: .12;
+        mix-blend-mode: overlay;
+      }
       .ice-card:hover {
         transform: translateY(-4px);
         border-color: var(--border-strong);
-        box-shadow: var(--inset-hairline), var(--glow-halo-sm);
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), var(--glow-halo-sm);
       }
       .ice-card--featured {
         border-color: var(--border-strong);
-        box-shadow: var(--inset-hairline), 0 0 0 1px var(--white-a08), var(--glow-halo-md);
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), 0 0 0 1px var(--white-a08), var(--glow-halo-md);
+      }
+      /* Layer 3 — static procedural veins (generated per card) */
+      .ice-card__veins {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        z-index: 1;
+        pointer-events: none;
+        overflow: visible;
+        opacity: .5;
+        mix-blend-mode: screen;
       }
       .ice-card__crack {
         position: absolute; inset: 0;
@@ -58,8 +79,21 @@
       }
       .ice-dust {
         position: absolute; top: 0; left: 0;
-        border-radius: 50%;
         background: var(--white-a30);
+        will-change: transform, opacity;
+      }
+      .ice-dust--round { border-radius: 50%; }
+      .ice-shard {
+        position: absolute; top: 0; left: 0;
+        background: var(--white-a60);
+        clip-path: polygon(50% 0, 100% 38%, 78% 100%, 22% 84%, 0 32%);
+        will-change: transform, opacity;
+      }
+      .ice-flash {
+        position: absolute; top: 0; left: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--white-a60), transparent 70%);
+        pointer-events: none;
         will-change: transform, opacity;
       }
       .ice-card__body { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 14px; height: 100%; }
@@ -156,58 +190,102 @@
     { icon: Peak,      title: 'Skyridge',     desc: 'Сообщество людей, влюблённых в горы. Нажми, чтобы присоединиться.', featured: true },
   ];
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     Procedural crack generator — jagged branches radiating from an origin.
-     Returns SVG path-d strings. Slight randomness on every call.
-     ───────────────────────────────────────────────────────────────────────── */
   const rand = (a, b) => a + Math.random() * (b - a);
 
-  function genCracks(ox, oy, w, h) {
-    const paths = [];
-    const branches = 5 + Math.floor(rand(0, 4));
-    const reach = Math.min(w, h) * 0.55;
-
-    const walk = (startAngle, segs, x0, y0) => {
-      let x = x0, y = y0, angle = startAngle;
+  /* ─────────────────────────────────────────────────────────────────────────
+     Static ice veins — faint procedural lines across the card (drawn on mount)
+     ───────────────────────────────────────────────────────────────────────── */
+  function genVeins(w, h) {
+    const out = [];
+    const lines = 6 + Math.floor(rand(0, 4));
+    for (let i = 0; i < lines; i++) {
+      let x = rand(0, w), y = rand(0, h), angle = rand(0, Math.PI * 2);
       let d = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-      const step = reach / segs;
-      const verts = [];
+      const segs = 3 + Math.floor(rand(0, 3));
+      const len = rand(w * 0.18, w * 0.5) / segs;
       for (let s = 0; s < segs; s++) {
-        angle += rand(-0.34, 0.34);
+        angle += rand(-0.45, 0.45);
+        x += Math.cos(angle) * len;
+        y += Math.sin(angle) * len;
+        d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+      }
+      out.push({ d, w: rand(0.4, 0.8).toFixed(2) });
+    }
+    return out;
+  }
+
+  function drawVeins(svg, veins, w, h) {
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.innerHTML = veins.map((v) => (
+      `<path d="${v.d}" fill="none" stroke-width="${v.w}" stroke-linecap="round"
+         style="stroke:var(--white-a18)"/>`
+    )).join('');
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Procedural crack generator v2 — dense branches + forks + tapering width.
+     Returns flat list of {d, width, delay}: one short path per segment so the
+     stroke tapers (thick at impact, thin at tips) and grows outward over time.
+     ───────────────────────────────────────────────────────────────────────── */
+  function genCracks(ox, oy, w, h) {
+    const out = [];
+    const mains = 9 + Math.floor(rand(0, 5));   // 9..13 main cracks
+    const reach = Math.min(w, h) * 0.62;
+
+    const grow = (x0, y0, angle0, segs, wStart, wEnd, delay0, dStep) => {
+      let x = x0, y = y0, angle = angle0;
+      const verts = [[x, y]];
+      const step = reach / segs;
+      for (let s = 0; s < segs; s++) {
+        angle += rand(-0.36, 0.36);
         x += Math.cos(angle) * step * rand(0.7, 1.25);
         y += Math.sin(angle) * step * rand(0.7, 1.25);
         x = Math.max(2, Math.min(w - 2, x));
         y = Math.max(2, Math.min(h - 2, y));
-        d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
-        verts.push([x, y, angle]);
+        verts.push([x, y]);
       }
-      return { d, verts };
+      // emit per-segment paths: tapering width + progressive delay (origin→out)
+      for (let k = 0; k < verts.length - 1; k++) {
+        const [ax, ay] = verts[k];
+        const [bx, by] = verts[k + 1];
+        const t = k / (verts.length - 1);
+        out.push({
+          d: `M ${ax.toFixed(1)} ${ay.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)}`,
+          width: (wStart + (wEnd - wStart) * t).toFixed(2),
+          delay: (delay0 + k * dStep).toFixed(3),
+        });
+      }
+      return verts;
     };
 
-    for (let i = 0; i < branches; i++) {
-      const base = (i / branches) * Math.PI * 2 + rand(-0.3, 0.3);
+    for (let i = 0; i < mains; i++) {
+      const base = (i / mains) * Math.PI * 2 + rand(-0.3, 0.3);
       const segs = 4 + Math.floor(rand(0, 3));
-      const main = walk(base, segs, ox, oy);
-      paths.push(main.d);
-      // ~40% spawn a fork from an early vertex
-      if (Math.random() < 0.4 && main.verts.length > 1) {
-        const [fx, fy, fa] = main.verts[0];
-        const fork = walk(fa + rand(-0.6, 0.6), 2 + Math.floor(rand(0, 2)), fx, fy);
-        paths.push(fork.d);
+      const bDelay = rand(0, 0.05);
+      const verts = grow(ox, oy, base, segs, 1.8, 0.35, bDelay, 0.035);
+      // 1–2 thinner, shorter forks from random vertices along the branch
+      const forks = 1 + Math.floor(rand(0, 2));
+      for (let f = 0; f < forks; f++) {
+        if (verts.length < 3) break;
+        const vi = 1 + Math.floor(rand(0, verts.length - 2));
+        const [fx, fy] = verts[vi];
+        grow(fx, fy, base + rand(-0.95, 0.95), 2 + Math.floor(rand(0, 2)),
+             0.85, 0.25, bDelay + vi * 0.035 + 0.04, 0.03);
       }
     }
-    return paths;
+    return out;
   }
 
-  /* Draw cracks imperatively into the SVG, animate stroke-dashoffset (origin-out) */
-  function drawCracks(svg, paths, w, h) {
+  /* Draw cracks imperatively, animate stroke-dashoffset with per-segment delay */
+  function drawCracks(svg, segs, w, h) {
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('preserveAspectRatio', 'none');
-    svg.innerHTML = paths.map((d, i) => (
-      `<path d="${d}" pathLength="1" fill="none" stroke-width="1"
+    svg.innerHTML = segs.map((s) => (
+      `<path d="${s.d}" pathLength="1" fill="none" stroke-width="${s.width}"
          stroke-linecap="round" stroke-linejoin="round"
-         style="stroke:var(--white-a30);stroke-dasharray:1;stroke-dashoffset:1;opacity:1;
-                transition:stroke-dashoffset .34s var(--ease-out) ${(i * 0.03).toFixed(2)}s, opacity .3s ease"/>`
+         style="stroke:var(--white-a60);stroke-dasharray:1;stroke-dashoffset:1;opacity:1;
+                transition:stroke-dashoffset .26s var(--ease-out) ${s.delay}s, opacity .3s ease"/>`
     )).join('');
     void svg.getBoundingClientRect(); // force reflow so the transition runs
     svg.querySelectorAll('path').forEach((p) => { p.style.strokeDashoffset = '0'; });
@@ -220,36 +298,69 @@
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Ice-dust particle burst — DOM divs with gravity + fade, ~0.5s, single burst
+     Ice-dust burst v2 — impact flash + 28–36 particles (fine dust + shards),
+     radial velocity + gravity, shard rotation, 0.6–0.9s, fade in last 30%.
+     Single shared RAF loop for all particles (perf).
      ───────────────────────────────────────────────────────────────────────── */
-  function burstDust(layer, ox, oy, count = 16) {
-    const DUR = 520;
-    for (let i = 0; i < count; i++) {
+  function burstDust(layer, ox, oy) {
+    /* impact flash at origin */
+    const flash = document.createElement('div');
+    flash.className = 'ice-flash';
+    const FS = 72;
+    flash.style.width = flash.style.height = `${FS}px`;
+    layer.appendChild(flash);
+    const fStart = performance.now();
+    const fStep = (now) => {
+      const t = (now - fStart) / 190;
+      if (t >= 1 || !flash.isConnected) { flash.remove(); return; }
+      const sc = 0.2 + t * 1.1;
+      flash.style.transform = `translate(${(ox - FS / 2).toFixed(1)}px, ${(oy - FS / 2).toFixed(1)}px) scale(${sc.toFixed(2)})`;
+      flash.style.opacity = (0.6 * (1 - t)).toFixed(2);
+      requestAnimationFrame(fStep);
+    };
+    requestAnimationFrame(fStep);
+
+    /* particles */
+    const N = 28 + Math.floor(rand(0, 9)); // 28..36
+    const g = 0.08;
+    const parts = [];
+    for (let i = 0; i < N; i++) {
+      const shard = Math.random() < 0.3;
       const el = document.createElement('div');
-      el.className = 'ice-dust';
-      const size = rand(1, 3);
+      el.className = shard ? 'ice-shard' : 'ice-dust ice-dust--round';
+      const size = shard ? rand(3, 5) : rand(1, 2);
       el.style.width = el.style.height = `${size.toFixed(1)}px`;
       layer.appendChild(el);
 
-      let x = ox, y = oy;
-      let vx = rand(-1.4, 1.4);
-      let vy = rand(-1.3, 0.3);
-      const g = 0.07;
-      const start = performance.now();
-
-      const step = (now) => {
-        const t = now - start;
-        if (t >= DUR || !el.isConnected) { el.remove(); return; }
-        vy += g;
-        x += vx; y += vy;
-        const op = 1 - t / DUR;
-        const sc = 1 - (t / DUR) * 0.5;
-        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${sc.toFixed(2)})`;
-        el.style.opacity = op.toFixed(2);
-        requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+      const ang = rand(0, Math.PI * 2);
+      const spd = shard ? rand(1.2, 3) : rand(1.8, 4.4);
+      parts.push({
+        el, x: ox, y: oy,
+        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+        rot: rand(0, 360), vr: shard ? rand(-13, 13) : 0,
+        shard, dur: rand(600, 900), start: performance.now(),
+      });
     }
+
+    const step = (now) => {
+      let alive = false;
+      for (const p of parts) {
+        if (!p.el) continue;
+        const t = now - p.start;
+        if (t >= p.dur || !p.el.isConnected) { p.el.remove(); p.el = null; continue; }
+        alive = true;
+        p.vy += g;
+        p.x += p.vx; p.y += p.vy;
+        p.rot += p.vr;
+        const lt = t / p.dur;
+        const op = lt < 0.7 ? 1 : 1 - (lt - 0.7) / 0.3; // fade in last 30%
+        p.el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`
+          + (p.shard ? ` rotate(${p.rot.toFixed(0)}deg)` : '');
+        p.el.style.opacity = op.toFixed(2);
+      }
+      if (alive) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
@@ -257,10 +368,22 @@
      ───────────────────────────────────────────────────────────────────────── */
   function IceCard({ icon: IconCmp, title, desc, featured, onOpen }) {
     const cardRef = React.useRef(null);
+    const veinsRef = React.useRef(null);
     const svgRef  = React.useRef(null);
     const dustRef = React.useRef(null);
     const activeRef = React.useRef(false);
     const resetTimer = React.useRef(null);
+
+    /* Draw static ice veins once the card has real dimensions */
+    React.useEffect(() => {
+      const raf = requestAnimationFrame(() => {
+        const card = cardRef.current, vsvg = veinsRef.current;
+        if (!card || !vsvg) return;
+        const r = card.getBoundingClientRect();
+        if (r.width && r.height) drawVeins(vsvg, genVeins(r.width, r.height), r.width, r.height);
+      });
+      return () => cancelAnimationFrame(raf);
+    }, []);
 
     const trigger = React.useCallback((clientX, clientY) => {
       const card = cardRef.current;
@@ -307,6 +430,7 @@
         tabIndex={featured ? 0 : undefined}
         onKeyDown={featured ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } } : undefined}
       >
+        <svg ref={veinsRef} className="ice-card__veins" aria-hidden="true" />
         <svg ref={svgRef} className="ice-card__crack" aria-hidden="true" />
         <div ref={dustRef} className="ice-card__dust" aria-hidden="true" />
 
