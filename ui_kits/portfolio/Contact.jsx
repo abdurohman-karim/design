@@ -1,5 +1,6 @@
 // Portfolio — Contact + footer. cout<<'Contact'; form + social links.
-const { SectionHeading, Input, Textarea, Button, SocialLink } = window.DS;
+const { SectionHeading, Input, Textarea, SocialLink } = window.DS;
+const DecryptBtn = window.DecryptBtn;
 
 function Contact() {
   const [sent, setSent] = React.useState(false);
@@ -17,17 +18,17 @@ function Contact() {
             <Input label="Email" type="email" placeholder="you@domain.com" required />
             <Textarea label="Message" rows={5} placeholder="Tell me about the project…" required />
             <div>
-              <Button variant="primary" size="lg" arrow type="submit">
+              <DecryptBtn variant="primary" size="lg" arrow type="submit">
                 {sent ? 'Message sent ✓' : 'Send message'}
-              </Button>
+              </DecryptBtn>
             </div>
           </form>
 
           {/* social */}
           <div>
-            <SocialLink icon="send" label="Telegram" handle="@abdurohman" href="https://t.me/abdurohman" />
+            <SocialLink icon="send" label="Telegram" handle="@abdurohman_karimov" href="https://t.me/abdurohman_karimov" />
             <SocialLink icon="github" label="GitHub" handle="abdurohman-karim" href="https://github.com/abdurohman-karim" />
-            <SocialLink icon="mail" label="Email" handle="hello@abdurohman.dev" href="mailto:hello@abdurohman.dev" />
+            <SocialLink icon="mail" label="Email" handle="ghostmagic766@gmail.com" href="mailto:ghostmagic766@gmail.com" />
           </div>
         </div>
       </div>

@@ -24,6 +24,7 @@
   --shadow-md:  0 8px 24px rgba(0,0,0,0.5);
   --shadow-lg:  0 24px 60px rgba(0,0,0,0.6);
   --shadow-xl:  0 40px 100px rgba(0,0,0,0.7);
+  --shadow-card: 0 28px 56px rgba(0,0,0,0.55), 0 0 0 1px var(--border-subtle);
 
   /* ---- White glow (hover / focus accent — NO hue) ---- */
   --glow-ring:    0 0 0 1px var(--white-a18);

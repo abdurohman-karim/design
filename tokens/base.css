@@ -68,3 +68,21 @@ a { color: inherit; text-decoration: none; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- Theme transition — applied momentarily by JS during switch ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition-property: background-color, color, border-color, box-shadow, opacity !important;
+    transition-duration: 0.3s !important;
+    transition-timing-function: ease !important;
+  }
+}
+
+/* ---- Light theme selection ---- */
+[data-theme="light"] ::selection {
+  background: #0A0A0A;
+  color: #FFFFFF;
+}

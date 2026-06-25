@@ -2,10 +2,54 @@
 const { SectionHeading, Tag, Icon } = window.DS;
 
 const GROUPS = [
-  { icon: 'server',   label: 'Backend',          items: ['PHP', 'Laravel', 'Python', 'aiogram', 'Node.js', 'RoadRunner'] },
-  { icon: 'code',     label: 'Frontend',          items: ['JavaScript', 'Vue.js', 'SCSS', 'HTML/CSS'] },
-  { icon: 'database', label: 'Data & Infra',      items: ['PostgreSQL', 'Redis', 'Docker', 'GitLab CI/CD'] },
-  { icon: 'bot',      label: 'AI & Integrations', items: ['OpenAI', 'Groq', 'DeepSeek', 'OpenRouter', 'SBP'] },
+  {
+    icon:  'server',
+    label: 'Backend',
+    desc:  'High-load APIs, event-driven workers, full Laravel ecosystem',
+    items: ['PHP', 'Laravel', 'Python', 'Node.js', 'RoadRunner', 'Livewire', 'Laravel Jobs', 'Queue Workers', 'CRON Jobs', 'aiogram'],
+  },
+  {
+    icon:  'code',
+    label: 'Frontend',
+    desc:  'Reactive UIs, design systems and modern CSS tooling',
+    items: ['JavaScript (ES6+)', 'Vue.js', 'Vuex', 'SCSS / SASS', 'Tailwind CSS', 'Bootstrap', 'HTML / CSS', 'ESLint', 'BEM', 'Animate.css'],
+  },
+  {
+    icon:  'database',
+    label: 'Databases',
+    desc:  'SQL, NoSQL, caching layers and partitioning strategies',
+    items: ['PostgreSQL', 'MySQL', 'MariaDB', 'MongoDB', 'Redis', 'DB Partitioning', 'DataGrip'],
+  },
+  {
+    icon:  'bolt',
+    label: 'API & Auth',
+    desc:  'REST, JSON-RPC, OAuth flows and third-party API integrations',
+    items: ['REST API', 'JSON-RPC', 'JWT', 'OAuth', 'Bearer Token', 'Basic Auth', 'API Key', 'Telegram Bot API', 'Trello API'],
+  },
+  {
+    icon:  'layers',
+    label: 'DevOps & Infra',
+    desc:  'Containerisation, CI/CD pipelines, messaging and observability',
+    items: ['Docker', 'GitHub Actions', 'GitLab CI/CD', 'RabbitMQ', 'Grafana', 'Sentry', 'Hestia CP'],
+  },
+  {
+    icon:  'bot',
+    label: 'AI & Bots',
+    desc:  'LLM integrations, Telegram bots and computer-vision pipelines',
+    items: ['OpenAI', 'Groq', 'DeepSeek', 'OpenRouter', 'python-telegram-bot', 'OpenCV', 'SBP'],
+  },
+  {
+    icon:  'shield',
+    label: 'Security',
+    desc:  'Penetration testing, network analysis and vulnerability assessment',
+    items: ['Nmap', 'Wireshark', 'SQLMap', 'Nikto', 'Burp Suite', 'Dirsearch', 'Metasploit', 'Hydra', 'Hashcat', 'Netcat'],
+  },
+  {
+    icon:  'terminal',
+    label: 'Tools & Creative',
+    desc:  'Animation libs, 3D, design tools and everyday dev stack',
+    items: ['GSAP', 'Three.js', 'Tilt.js', 'jQuery', 'Figma', 'Pixso', 'Canva', 'Git', 'Linux', 'Bitrix24'],
+  },
 ];
 
 function Stack() {
@@ -122,11 +166,11 @@ function Stack() {
               position: 'absolute',
               left: '50%',
               top: '50%',
-              width: 'min(640px, calc(100vw - 48px))',
+              width: 'min(700px, calc(100vw - 48px))',
               borderRadius: 20,
               border: '1px solid var(--border)',
               background: 'var(--surface-raised)',
-              boxShadow: '0 28px 56px rgba(0,0,0,0.55), 0 0 0 1px var(--border-subtle)',
+              boxShadow: '0 0 0 1px var(--border-subtle)',
               display: 'flex',
               flexDirection: 'column',
               willChange: 'transform, opacity',
@@ -135,23 +179,35 @@ function Stack() {
             }}
           >
             {/* card body */}
-            <div style={{ padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 26 }}>
-              {/* header row: icon + label */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={{ color: 'var(--text-secondary)' }}>
+            <div style={{ padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 22 }}>
+              {/* header row: icon + label + description */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <span style={{ color: 'var(--text-secondary)', marginTop: 2, flexShrink: 0 }}>
                   <Icon name={g.icon} size={26} duotone />
                 </span>
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 11,
-                  letterSpacing: '0.18em', textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                }}>
-                  {g.label}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    letterSpacing: '0.18em', textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                  }}>
+                    {g.label}
+                  </span>
+                  <span style={{
+                    fontFamily: 'var(--font-sans)', fontSize: 13,
+                    color: 'var(--text-faint)', lineHeight: 1.5,
+                    letterSpacing: '0.01em',
+                  }}>
+                    {g.desc}
+                  </span>
+                </div>
               </div>
 
+              {/* divider */}
+              <div style={{ height: 1, background: 'var(--border-subtle)', marginLeft: 0 }} />
+
               {/* tech tags */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {g.items.map(t => <Tag key={t}>{t}</Tag>)}
               </div>
             </div>

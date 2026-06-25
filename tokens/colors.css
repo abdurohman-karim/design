@@ -68,3 +68,61 @@
   --accent-muted:  var(--gray-300);
   --on-accent:     var(--black);
 }
+
+/* ============================================================
+   LIGHT THEME — [data-theme="light"] on <html>
+   Strictly mirrors the dark system: same variable names,
+   flipped palette. Zero changes to :root above.
+   ============================================================ */
+[data-theme="light"] {
+  /* ---- "White" role → near-black (max contrast on light bg) ---- */
+  --white: #0A0A0A;
+
+  /* ---- Alpha tokens: flip rgba(255,255,255) → rgba(0,0,0) ---- */
+  --white-a04: rgba(0, 0, 0, 0.04);
+  --white-a06: rgba(0, 0, 0, 0.06);
+  --white-a08: rgba(0, 0, 0, 0.08);
+  --white-a12: rgba(0, 0, 0, 0.12);
+  --white-a18: rgba(0, 0, 0, 0.18);
+  --white-a30: rgba(0, 0, 0, 0.30);
+  --white-a60: rgba(0, 0, 0, 0.60);
+
+  /* ---- Semantic surfaces ---- */
+  --bg:             #FFFFFF;
+  --bg-elevated:    #F9F9F9;
+  --bg-section:     #F2F2F2;
+  --surface-card:   rgba(0, 0, 0, 0.04);
+  --surface-raised: #E8E8E8;
+  --surface-inset:  #F2F2F2;
+
+  /* ---- Borders ---- */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border:        rgba(0, 0, 0, 0.10);
+  --border-strong: rgba(0, 0, 0, 0.20);
+  --border-solid:  #CCCCCC;
+
+  /* ---- Text ---- */
+  --text-primary:   #0A0A0A;
+  --text-secondary: #3A3A3A;
+  --text-muted:     #6B6B6B;
+  --text-faint:     #999999;
+  --text-inverse:   #FFFFFF;
+
+  /* ---- Grid texture ---- */
+  --grid-line:        rgba(0, 0, 0, 0.07);
+  --grid-line-strong: rgba(0, 0, 0, 0.12);
+
+  /* ---- Interaction glow → dark on light bg ---- */
+  --glow-soft:   rgba(0, 0, 0, 0.06);
+  --glow-medium: rgba(0, 0, 0, 0.14);
+  --glow-strong: rgba(0, 0, 0, 0.28);
+  --glow-text:   0 0 24px rgba(0, 0, 0, 0.12);
+
+  /* ---- Accent = near-black ---- */
+  --accent:       #0A0A0A;
+  --accent-muted: #3A3A3A;
+  --on-accent:    #FFFFFF;
+
+  /* ---- Shadows: lighter on white background ---- */
+  --shadow-card: 0 8px 20px rgba(0,0,0,0.09), 0 0 0 1px var(--border-subtle);
+}
