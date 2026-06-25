@@ -20,11 +20,13 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-frost-css'))
     /* ── Mobile menu ── */
     .ak-burger { display: none; }
     .ak-mobile-menu {
-      position: fixed; inset: 0; z-index: 90;
+      position: fixed; inset: 0; z-index: 95;   /* below header (100): X stays on top */
       display: flex; flex-direction: column;
       padding: 96px var(--container-pad) 40px;
       gap: 2px;
-      background: var(--header-bg);
+      /* near-opaque base so the menu never shows the page through it, even if
+         the mobile browser drops backdrop-filter mid-transition */
+      background: rgba(6, 6, 6, 0.94);
       backdrop-filter: blur(var(--blur-lg));
       -webkit-backdrop-filter: blur(var(--blur-lg));
       opacity: 0; visibility: hidden;
@@ -33,6 +35,7 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-frost-css'))
                   transform var(--dur-base) var(--ease-out),
                   visibility var(--dur-base) var(--ease-out);
     }
+    [data-theme="light"] .ak-mobile-menu { background: rgba(250, 250, 250, 0.94); }
     .ak-mobile-menu.is-open { opacity: 1; visibility: visible; transform: none; }
     .ak-mobile-menu a {
       opacity: 0; transform: translateY(12px);
@@ -128,6 +131,7 @@ function Header({ active }) {
   ];
 
   return (
+    <>
     <header style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
       borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
@@ -233,8 +237,11 @@ function Header({ active }) {
           </button>
         </div>
       </div>
+    </header>
 
-      {/* mobile menu overlay */}
+      {/* mobile menu overlay — sibling of <header> so it is NOT nested inside
+          the header's stacking context / backdrop-filter (that hid the X and
+          dropped the blur on mobile) */}
       <div className={`ak-mobile-menu${menuOpen ? ' is-open' : ''}`} onClick={() => setMenuOpen(false)}>
         {links.map(([id, label], i) => (
           <a key={id} href={'/#' + id} onClick={() => setMenuOpen(false)} style={{
@@ -260,7 +267,7 @@ function Header({ active }) {
           <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{String(links.length + 1).padStart(2, '0')}</span>
         </a>
       </div>
-    </header>
+    </>
   );
 }
 window.Header = Header;

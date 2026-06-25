@@ -1,4 +1,6 @@
 // Portfolio — Stack. print('Stack'), GSAP card-deck reveal (pinned section).
+// Desktop: pinned scrub card-deck. Mobile: static vertical list (no GSAP) —
+// avoids the 100vh / URL-bar / pin-resize jank that broke the deck on phones.
 const { SectionHeading, Tag, Icon } = window.DS;
 
 const GROUPS = [
@@ -52,20 +54,122 @@ const GROUPS = [
   },
 ];
 
-function Stack() {
+const n = GROUPS.length;
+
+/* Shared card shell (outer container differs per layout; this is the chrome) */
+const CARD_SHELL = {
+  borderRadius: 20,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-raised)',
+  boxShadow: '0 0 0 1px var(--border-subtle)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+};
+
+/* Inner card content — reused by both desktop deck and mobile list */
+function StackCardInner({ g, i }) {
+  return (
+    <>
+      {/* card body */}
+      <div style={{ padding: '32px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* header row: icon + label + description */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+          <span style={{ color: 'var(--text-secondary)', marginTop: 2, flexShrink: 0 }}>
+            <Icon name={g.icon} size={26} duotone />
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 11,
+              letterSpacing: '0.18em', textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+            }}>
+              {g.label}
+            </span>
+            <span style={{
+              fontFamily: 'var(--font-sans)', fontSize: 13,
+              color: 'var(--text-faint)', lineHeight: 1.5,
+              letterSpacing: '0.01em',
+            }}>
+              {g.desc}
+            </span>
+          </div>
+        </div>
+
+        {/* divider */}
+        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+
+        {/* tech tags */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {g.items.map(t => <Tag key={t}>{t}</Tag>)}
+        </div>
+      </div>
+
+      {/* card footer: skill-set label + card number */}
+      <div style={{
+        padding: '14px 28px',
+        borderTop: '1px solid var(--border-subtle)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10,
+          letterSpacing: '0.14em', textTransform: 'uppercase',
+          color: 'var(--text-faint)',
+        }}>
+          skill set
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em',
+          color: 'var(--text-muted)',
+        }}>
+          {String(i + 1).padStart(2, '0')}
+          <span style={{ color: 'var(--text-faint)' }}> / {String(n).padStart(2, '0')}</span>
+        </span>
+      </div>
+    </>
+  );
+}
+
+/* ── Mobile: plain vertical list, no GSAP, no pin, natural document flow ── */
+function StackMobile() {
+  return (
+    <section id="stack" style={{
+      position: 'relative',
+      padding: 'var(--section-gap) 0',
+      borderTop: '1px solid var(--border-subtle)',
+    }}>
+      <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad)' }}>
+        <SectionHeading index={2} title="Stack"
+          code={<><span style={{ color: 'var(--gray-400)' }}>print</span>(<span style={{ color: 'var(--gray-300)' }}>'Stack'</span>)</>}
+          lede="The tools I reach for to ship reliable, high-load backend systems." />
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 40 }}>
+          {GROUPS.map((g, i) => (
+            <div key={g.label} style={{ ...CARD_SHELL, width: '100%' }}>
+              <StackCardInner g={g} i={i} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── Desktop: pinned scrub card-deck (unchanged behaviour) ── */
+function StackDesktop() {
   const sectionRef = React.useRef(null);
   const cardsRef   = React.useRef([]);
   const counterRef = React.useRef(null);
   const progRef    = React.useRef(null);
-  const n = GROUPS.length;
 
   React.useEffect(() => {
     const section = sectionRef.current;
     const cards   = cardsRef.current;
-    const isMob   = window.innerWidth < 768;
 
     /* depth per "behind" layer */
-    const LAYER = { y: isMob ? 8 : 14, scale: 0.03, opacityStep: 0.22 };
+    const LAYER = { y: 14, scale: 0.03, opacityStep: 0.22 };
     const EXIT_Y = -(window.innerHeight * 0.9);
     const ROTS   = [3.2, -3.5, 2.8]; /* alternating z-rotation on exit */
 
@@ -86,7 +190,7 @@ function Stack() {
     const tl = gsap.timeline({ defaults: { ease: 'none' } });
 
     for (let step = 0; step < n - 1; step++) {
-      const rot = isMob ? 0 : ROTS[step % ROTS.length];
+      const rot = ROTS[step % ROTS.length];
 
       /* active card flies off upward */
       tl.to(cards[step], {
@@ -163,78 +267,16 @@ function Stack() {
             key={g.label}
             ref={el => cardsRef.current[i] = el}
             style={{
+              ...CARD_SHELL,
               position: 'absolute',
               left: '50%',
               top: '50%',
               width: 'min(700px, calc(100vw - 48px))',
-              borderRadius: 20,
-              border: '1px solid var(--border)',
-              background: 'var(--surface-raised)',
-              boxShadow: '0 0 0 1px var(--border-subtle)',
-              display: 'flex',
-              flexDirection: 'column',
               willChange: 'transform, opacity',
               transformStyle: 'preserve-3d',
-              overflow: 'hidden',
             }}
           >
-            {/* card body */}
-            <div style={{ padding: '36px 40px', display: 'flex', flexDirection: 'column', gap: 22 }}>
-              {/* header row: icon + label + description */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <span style={{ color: 'var(--text-secondary)', marginTop: 2, flexShrink: 0 }}>
-                  <Icon name={g.icon} size={26} duotone />
-                </span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 11,
-                    letterSpacing: '0.18em', textTransform: 'uppercase',
-                    color: 'var(--text-muted)',
-                  }}>
-                    {g.label}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--font-sans)', fontSize: 13,
-                    color: 'var(--text-faint)', lineHeight: 1.5,
-                    letterSpacing: '0.01em',
-                  }}>
-                    {g.desc}
-                  </span>
-                </div>
-              </div>
-
-              {/* divider */}
-              <div style={{ height: 1, background: 'var(--border-subtle)', marginLeft: 0 }} />
-
-              {/* tech tags */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {g.items.map(t => <Tag key={t}>{t}</Tag>)}
-              </div>
-            </div>
-
-            {/* card footer: skill-set label + card number */}
-            <div style={{
-              padding: '14px 40px',
-              borderTop: '1px solid var(--border-subtle)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: 10,
-                letterSpacing: '0.14em', textTransform: 'uppercase',
-                color: 'var(--text-faint)',
-              }}>
-                skill set
-              </span>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em',
-                color: 'var(--text-muted)',
-              }}>
-                {String(i + 1).padStart(2, '0')}
-                <span style={{ color: 'var(--text-faint)' }}> / {String(n).padStart(2, '0')}</span>
-              </span>
-            </div>
+            <StackCardInner g={g} i={i} />
           </div>
         ))}
       </div>
@@ -283,5 +325,25 @@ function Stack() {
 
     </section>
   );
+}
+
+function Stack() {
+  /* Switch layouts at the 768px breakpoint, reactive to resize / orientation */
+  const [isMobile, setIsMobile] = React.useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+
+  React.useEffect(() => {
+    const mql = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mql.matches);
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  /* key forces a clean remount when crossing the breakpoint so GSAP/pin
+     fully tears down instead of leaving a stale ScrollTrigger behind */
+  return isMobile
+    ? <StackMobile key="mobile" />
+    : <StackDesktop key="desktop" />;
 }
 window.Stack = Stack;
