@@ -15,9 +15,9 @@ function About() {
           lede="Backend / full-stack developer in fintech and payment systems. I design APIs, payment platforms and banking integrations — including SBP (Faster Payments) — and multi-provider AI services." />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 0, margin: '56px 0', borderTop: '1px solid var(--border-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <StatCard value="20+" label="Projects" />
-          <StatCard value="6+" label="Years" />
-          <StatCard value="2" label="Languages" sub="PHP · Python" />
+          <StatCard value="30+" label="Projects" />
+          <StatCard value="3+" label="Years" />
+          <StatCard value="3" label="Languages" sub="PHP · Python · JS" />
           <StatCard value="∞" label="Edge cases" sub="handled" />
         </div>
 
