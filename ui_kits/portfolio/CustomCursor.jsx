@@ -100,6 +100,15 @@
 
       /* RAF loop — lerps position, re-reads element rect each frame for scroll sync */
       function tick() {
+        /* Framed element gone from DOM (e.g. SPA route change unmounted the
+           clicked link) — mouseout never fires, so drop the frame manually.
+           Otherwise getBoundingClientRect() returns 0,0 and the cursor would
+           glide to the top-left corner. Fall back to the dot at the last
+           known mouse position. */
+        if (hovered && !hovered.isConnected) {
+          hovered = null;
+          unsetFrame();
+        }
         if (hovered) {
           const r  = hovered.getBoundingClientRect();
           cur.x   += (r.left + r.width  / 2 - cur.x) * LERP_FRAME;

@@ -15,10 +15,100 @@
   [data-reveal].is-in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1; transform: none; } }
   @media (max-width: 720px) { .ak-nav { display: none !important; } }
+
+  /* ── Preloader — instant inline overlay, fades out once React mounts ── */
+  #ak-preloader {
+    position: fixed; inset: 0; z-index: 99990;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    background: var(--bg, #000);
+    transition: opacity .6s var(--ease-out, cubic-bezier(.16,1,.3,1));
+  }
+  #ak-preloader.is-done { opacity: 0; pointer-events: none; }
+  #ak-preloader::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 60% 50% at 50% 46%, rgba(255,255,255,0.06), transparent 70%);
+  }
+  .ak-pre-mark {
+    width: 64px; height: 64px; display: grid; place-items: center;
+    border: 1px solid var(--border-strong, rgba(255,255,255,.18)); border-radius: 14px;
+    font-family: var(--font-display, system-ui, sans-serif); font-weight: 600; font-size: 26px;
+    letter-spacing: -0.04em; color: var(--white, #fff);
+    box-shadow: var(--inset-hairline, inset 0 1px 0 rgba(255,255,255,.08));
+    animation: ak-pre-breath 1.8s var(--ease-in-out, ease-in-out) infinite;
+  }
+  @keyframes ak-pre-breath {
+    0%, 100% { box-shadow: var(--inset-hairline, inset 0 1px 0 rgba(255,255,255,.08)), 0 0 0 rgba(255,255,255,0); }
+    50%      { box-shadow: var(--inset-hairline, inset 0 1px 0 rgba(255,255,255,.08)), 0 0 34px rgba(255,255,255,.16); }
+  }
+  .ak-pre-track {
+    position: relative; width: 180px; height: 2px; border-radius: 2px; overflow: hidden;
+    background: var(--border, rgba(255,255,255,.08));
+  }
+  .ak-pre-fill {
+    position: absolute; inset: 0; transform: scaleX(0); transform-origin: left center;
+    background: var(--white, #fff);
+  }
+  .ak-pre-count {
+    font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
+    letter-spacing: .24em; color: var(--text-muted, #6b6b6b);
+  }
+  @media (prefers-reduced-motion: reduce) { .ak-pre-mark { animation: none; } }
 </style>
 </head>
 <body>
+<div id="ak-preloader">
+  <div class="ak-pre-mark">sY</div>
+  <div class="ak-pre-track"><div class="ak-pre-fill" id="ak-pre-fill"></div></div>
+  <div class="ak-pre-count" id="ak-pre-count">000</div>
+</div>
 <div id="root"></div>
+
+<!-- Preloader driver — runs immediately, before React/Babel even download -->
+<script>
+(function () {
+  var fill  = document.getElementById('ak-pre-fill');
+  var count = document.getElementById('ak-pre-count');
+  var pre   = document.getElementById('ak-preloader');
+  var p = 0, done = false, raf;
+  document.body.style.overflow = 'hidden';
+
+  function render() {
+    if (fill)  fill.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+    if (count) count.textContent = String(Math.round(p * 100)).padStart(3, '0');
+  }
+  function tick() {
+    if (done) return;
+    p += (0.9 - p) * 0.025;          // ease toward 90% while the app boots
+    if (p > 0.899) p = 0.899;
+    render();
+    raf = requestAnimationFrame(tick);
+  }
+  raf = requestAnimationFrame(tick);
+
+  window.__akReady = function () {
+    if (done) return;
+    done = true;
+    cancelAnimationFrame(raf);
+    var start = p, t0 = performance.now();
+    (function finish(now) {
+      var k = Math.min(1, (now - t0) / 300);
+      p = start + (1 - start) * k;    // snap to 100%
+      render();
+      if (k < 1) { requestAnimationFrame(finish); return; }
+      if (pre) {
+        pre.classList.add('is-done');
+        setTimeout(function () {
+          if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
+          document.body.style.overflow = '';
+        }, 650);
+      }
+    })(t0);
+  };
+
+  // Safety net: never trap the user if the app fails to signal
+  setTimeout(function () { if (!done) window.__akReady(); }, 8000);
+})();
+</script>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -110,6 +200,11 @@ function InterestsRoute() {
 function App() {
   const [route, setRoute] = React.useState(() => routeOf(window.location.pathname));
   const pendingScroll = React.useRef(null);
+
+  /* App is mounted and painted — dismiss the preloader */
+  React.useEffect(() => {
+    if (window.__akReady) requestAnimationFrame(() => window.__akReady());
+  }, []);
 
   /* Intercept internal link clicks → pushState instead of full navigation */
   React.useEffect(() => {
