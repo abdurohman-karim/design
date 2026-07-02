@@ -347,3 +347,4 @@ function Stack() {
     : <StackDesktop key="desktop" />;
 }
 window.Stack = Stack;
+window.__akStackGroups = GROUPS; // data export for CommandTerminal's `stack` command

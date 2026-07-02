@@ -66,3 +66,4 @@ function Projects() {
   );
 }
 window.Projects = Projects;
+window.__akProjects = PROJECTS; // data export for CommandTerminal's `ls projects` command
