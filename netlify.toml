@@ -1,5 +1,6 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
 
 # SPA fallback — any path without a matching static file serves the shell,
 # so direct visits / refreshes on /interests render via the client router.

@@ -434,10 +434,13 @@
      Skyridge modal
      ───────────────────────────────────────────────────────────────────────── */
   const DecryptBtn = window.DecryptBtn;
+  const { Input, Textarea } = window.DS;
 
   function SkyridgeModal({ open, onClose }) {
     const [mounted, setMounted] = React.useState(open);
     const [shown, setShown] = React.useState(false);
+    const [status, setStatus] = React.useState('idle'); // idle | sending | sent | error
+    const [error, setError] = React.useState('');
 
     React.useEffect(() => {
       if (open) {
@@ -445,10 +448,33 @@
         requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
       } else {
         setShown(false);
-        const t = setTimeout(() => setMounted(false), 300);
+        const t = setTimeout(() => {
+          setMounted(false);
+          setStatus('idle');
+          setError('');
+        }, 300);
         return () => clearTimeout(t);
       }
     }, [open]);
+
+    const onSubmit = (e) => {
+      e.preventDefault();
+      if (status === 'sending' || status === 'sent') return;
+      const fd = new FormData(e.target);
+      setStatus('sending');
+      setError('');
+      window.sendNotification({
+        type: 'skyridge',
+        name: fd.get('name'),
+        phone: fd.get('phone'),
+        message: fd.get('message'),
+      }).then(() => {
+        setStatus('sent');
+      }).catch((err) => {
+        setStatus('error');
+        setError(err.message || 'Something went wrong. Please try again.');
+      });
+    };
 
     React.useEffect(() => {
       if (!open) return;
@@ -493,12 +519,32 @@
             ice-tool footwork and anchor building, plus regular trips out to frozen waterfalls and
             alpine faces. New members get paired with a mentor and a gentle on-ramp; the experienced
             crowd sets the harder objectives — new routes, longer traverses, colder ice.
-            Join the rope team.
           </p>
 
-          <DecryptBtn variant="primary" size="lg" arrow as="a" href="#join">
-            Join Skyridge
-          </DecryptBtn>
+          {status === 'sent' ? (
+            <p style={{
+              fontFamily: 'var(--font-mono)', fontSize: 14, letterSpacing: '0.02em',
+              color: 'var(--text-primary)', margin: 0,
+            }}>Request sent ✓ — we'll reach out on the number you left.</p>
+          ) : (
+            <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+              <Input name="name" label="Name" placeholder="Your name" required
+                disabled={status === 'sending'} />
+              <Input name="phone" label="Phone" type="tel" placeholder="+1 234 567 8900" required
+                disabled={status === 'sending'} />
+              <Textarea name="message" label="Message (optional)" rows={3}
+                placeholder="Climbing experience, goals, anything we should know…"
+                disabled={status === 'sending'} />
+              <div>
+                <DecryptBtn variant="primary" size="lg" arrow type="submit" disabled={status === 'sending'}>
+                  {status === 'sending' ? 'Sending…' : 'Join Skyridge'}
+                </DecryptBtn>
+              </div>
+              {status === 'error' && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-secondary)' }}>{error}</span>
+              )}
+            </form>
+          )}
         </div>
       </div>
     );
