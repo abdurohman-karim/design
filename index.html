@@ -177,6 +177,7 @@
 <script type="text/babel" src="/ui_kits/portfolio/Repositories.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Contact.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/CustomCursor.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/LedgerBackground.jsx"></script>
 <script type="text/babel" src="/interests/InterestsPage.jsx"></script>
 
 <script type="text/babel">
@@ -302,6 +303,8 @@ function App() {
 
   return (
     <>
+      {/* Mounted before the routes so section content (equal z) paints above it */}
+      <LedgerBackground />
       <CustomCursor />
       {route === '/interests/' ? <InterestsRoute /> : <HomeRoute />}
     </>
