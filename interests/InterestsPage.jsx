@@ -155,12 +155,12 @@
   }
 
   const CARDS = [
-    { icon: 'ice-axe.svg',   title: 'Альпинизм',    desc: 'Высотные восхождения, многодневные маршруты и работа в связке.' },
-    { icon: 'crampon.svg',   title: 'Ледолазание',  desc: 'Вертикальный лёд, замёрзшие водопады и техника на передних зубьях.' },
-    { icon: 'carabiner.svg', title: 'Скалолазание', desc: 'Трэд и спорт-маршруты, страховочные станции, чтение рельефа.' },
-    { icon: 'helmet.svg',    title: 'Безопасность', desc: 'Оценка лавин, погодные окна и дисциплина горной страховки.' },
-    { icon: 'rope.svg',      title: 'Верёвки',      desc: 'Узлы, бухтование, дюльфер и спасработы на сложном рельефе.' },
-    { icon: 'peak.svg',      title: 'Skyridge',     desc: 'Сообщество людей, влюблённых в горы. Нажми, чтобы присоединиться.', featured: true },
+    { icon: 'ice-axe.svg',   title: 'Mountaineering', desc: 'High-altitude ascents above 4000m, multi-day approaches and glacier travel roped up as a team — route-finding, crevasse rescue and pacing a summit push against the weather window.' },
+    { icon: 'crampon.svg',   title: 'Ice Climbing',   desc: 'Vertical ice and frozen waterfalls from WI3 to WI5 — front-pointing on crampons, dual-tool technique, and reading how the ice will take a swing before committing to it.' },
+    { icon: 'carabiner.svg', title: 'Rock Climbing',  desc: 'Trad and sport routes, placing gear and building anchors on lead, reading rock for the next hold, and trusting a placement you can’t see from below.' },
+    { icon: 'helmet.svg',    title: 'Safety',         desc: 'Avalanche assessment (CT/ECT snowpack tests), weather-window planning and turnaround discipline — the unglamorous part that actually keeps a rope team alive.' },
+    { icon: 'rope.svg',      title: 'Ropework',       desc: 'Prusiks, Munter hitches, controlled rappels and crevasse-rescue haul systems — knots rehearsed until they’re reflex, not something you look up mid-climb.' },
+    { icon: 'peak.svg',      title: 'Skyridge',       desc: 'A community that plans its weekends around a summit — joint ascents, technique clinics on rock and ice, and a mentorship track for anyone starting out. Tap to join the rope team.', featured: true },
   ];
 
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -423,7 +423,7 @@
               fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.18em',
               textTransform: 'uppercase', color: 'var(--text-muted)',
               padding: '5px 12px', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)',
-            }}>Узнать о клубе →</span>
+            }}>Learn about the club →</span>
           )}
         </div>
       </div>
@@ -461,9 +461,9 @@
 
     return (
       <div className={`sky-overlay${shown ? ' is-open' : ''}`} onClick={onClose}
-        role="dialog" aria-modal="true" aria-label="Клуб Skyridge">
+        role="dialog" aria-modal="true" aria-label="Skyridge club">
         <div className="sky-panel" onClick={(e) => e.stopPropagation()}>
-          <button onClick={onClose} aria-label="Закрыть" style={{
+          <button onClick={onClose} aria-label="Close" style={{
             position: 'absolute', top: 18, right: 18, width: 34, height: 34,
             display: 'grid', placeItems: 'center', cursor: 'pointer',
             background: 'var(--surface-card)', border: '1px solid var(--border)',
@@ -476,7 +476,7 @@
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.2em',
             textTransform: 'uppercase', color: 'var(--text-muted)',
-          }}>// горный клуб</span>
+          }}>// mountain club</span>
 
           <h2 style={{
             fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 5vw, 48px)', fontWeight: 500,
@@ -488,14 +488,16 @@
             fontFamily: 'var(--font-sans)', fontSize: 16, lineHeight: 1.7,
             color: 'var(--text-secondary)', margin: '0 0 28px', textWrap: 'pretty',
           }}>
-            Сообщество людей, увлечённых горами, альпинизмом и активным отдыхом.
-            Совместные восхождения, тренировки по технике и страховке, выезды на лёд и скалы,
-            обмен опытом и маршрутами. Новичкам — наставничество, опытным — серьёзные цели.
-            Присоединяйся к связке Skyridge.
+            Skyridge is built around one shared itch: get back on rock, ice or a ridge line every
+            chance we get. Through the season we run joint ascents, technique clinics on belaying,
+            ice-tool footwork and anchor building, plus regular trips out to frozen waterfalls and
+            alpine faces. New members get paired with a mentor and a gentle on-ramp; the experienced
+            crowd sets the harder objectives — new routes, longer traverses, colder ice.
+            Join the rope team.
           </p>
 
           <DecryptBtn variant="primary" size="lg" arrow as="a" href="#join">
-            Присоединиться
+            Join Skyridge
           </DecryptBtn>
         </div>
       </div>
@@ -523,14 +525,15 @@
             fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 7vw, 88px)', fontWeight: 500,
             letterSpacing: '-0.04em', lineHeight: 1.0, color: 'var(--white)', margin: '18px 0 18px',
             textShadow: '0 0 60px rgba(255,255,255,0.12)',
-          }}>Горы&nbsp;и&nbsp;лёд</h1>
+          }}>Mountains&nbsp;&&nbsp;Ice</h1>
 
           <p style={{
             fontFamily: 'var(--font-sans)', fontSize: 'clamp(16px, 1.8vw, 20px)', lineHeight: 1.6,
             color: 'var(--text-secondary)', maxWidth: 620, margin: 0, textWrap: 'balance',
           }}>
-            Помимо бэкенда — высота, лёд и скалы. Наведи на карточку (или коснись на телефоне),
-            чтобы лёд треснул.
+            Backend work pays the bills; the mountains keep me honest. When I'm not shipping payment
+            APIs, I'm on rock, ice or a glacier — building the technique and judgment that keep a
+            rope team alive. Hover a card (or tap on mobile) and watch the ice crack.
           </p>
 
           {/* ice cards grid */}
