@@ -34,10 +34,10 @@ function Contact() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 56, marginTop: 56, alignItems: 'start' }}>
           {/* form */}
-          <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-            <Input name="name" label="Name" placeholder="Your name" required disabled={status === 'sending' || status === 'sent'} />
-            <Input name="email" label="Email" type="email" placeholder="you@domain.com" required disabled={status === 'sending' || status === 'sent'} />
-            <Textarea name="message" label="Message" rows={5} placeholder="Tell me about the project…" required disabled={status === 'sending' || status === 'sent'} />
+          <form onSubmit={onSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+            <Input name="name" label="Name" placeholder="Your name" required autoComplete="off" disabled={status === 'sending' || status === 'sent'} />
+            <Input name="email" label="Email" type="email" placeholder="you@domain.com" required autoComplete="off" disabled={status === 'sending' || status === 'sent'} />
+            <Textarea name="message" label="Message" rows={5} placeholder="Tell me about the project…" required autoComplete="off" disabled={status === 'sending' || status === 'sent'} />
             <div>
               <DecryptBtn variant="primary" size="lg" arrow type="submit" disabled={status === 'sending' || status === 'sent'}>
                 {status === 'sent' ? 'Message sent ✓' : status === 'sending' ? 'Sending…' : 'Send message'}

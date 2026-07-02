@@ -527,14 +527,14 @@
               color: 'var(--text-primary)', margin: 0,
             }}>Request sent ✓ — we'll reach out on the number you left.</p>
           ) : (
-            <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-              <Input name="name" label="Name" placeholder="Your name" required
+            <form onSubmit={onSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+              <Input name="name" label="Name" placeholder="Your name" required autoComplete="off"
                 disabled={status === 'sending'} />
-              <Input name="phone" label="Phone" type="tel" placeholder="+1 234 567 8900" required
+              <Input name="phone" label="Phone" type="tel" placeholder="+1 234 567 8900" required autoComplete="off"
                 disabled={status === 'sending'} />
               <Textarea name="message" label="Message (optional)" rows={3}
                 placeholder="Climbing experience, goals, anything we should know…"
-                disabled={status === 'sending'} />
+                autoComplete="off" disabled={status === 'sending'} />
               <div>
                 <DecryptBtn variant="primary" size="lg" arrow type="submit" disabled={status === 'sending'}>
                   {status === 'sending' ? 'Sending…' : 'Join Skyridge'}
