@@ -124,8 +124,8 @@ function Hero() {
         padding: '0 var(--container-pad)', width: '100%',
         display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 28,
       }}>
-        {/* code banner */}
-        <div style={{
+        {/* code banner — data-decrypt-heading opts into DecryptHeadings' scramble */}
+        <div data-decrypt-heading style={{
           fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-muted)',
           padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-pill)',
           background: 'var(--surface-card)', backdropFilter: 'blur(var(--blur-sm))', whiteSpace: 'nowrap',

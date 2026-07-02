@@ -95,6 +95,17 @@
     font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px;
     letter-spacing: .24em; color: var(--text-muted, #6b6b6b);
   }
+  /* ── Boot-sequence log — fixed height so lines never shift the layout ── */
+  .ak-pre-log {
+    width: 300px; max-width: 82vw; height: 108px; /* 6 lines × 18px */
+    overflow: hidden; text-align: left;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 11px; line-height: 18px; letter-spacing: .04em;
+    color: var(--text-faint, #555555);
+  }
+  /* Status tokens differ by luminance only — no hue */
+  .ak-pre-log b { font-weight: 400; color: var(--gray-300, #A0A0A0); }
+  .ak-pre-log .ak-pre-line-done b { color: var(--white, #FFFFFF); }
   @media (prefers-reduced-motion: reduce) { .ak-pre-mark { animation: none; } }
 </style>
 </head>
@@ -103,6 +114,7 @@
   <div class="ak-pre-mark">sY</div>
   <div class="ak-pre-track"><div class="ak-pre-fill" id="ak-pre-fill"></div></div>
   <div class="ak-pre-count" id="ak-pre-count">000</div>
+  <div class="ak-pre-log" id="ak-pre-log" aria-hidden="true"></div>
 </div>
 <div id="root"></div>
 
@@ -150,6 +162,57 @@
 
   // Safety net: never trap the user if the app fails to signal
   setTimeout(function () { if (!done) window.__akReady(); }, 8000);
+
+  /* ── Boot-sequence log (additive) ─────────────────────────────────────
+     Types kernel-style lines while the fake progress runs. __akReady is
+     wrapped (original untouched) to flush remaining lines and print the
+     final one; the 8s safety net calls the wrapper too, so a CDN failure
+     still completes the log and releases the preloader. */
+  var bootEl = document.getElementById('ak-pre-log');
+  if (bootEl) {
+    var BOOT = [
+      ['[ 0.001s]', ' booting synetra …'],
+      ['[  ok  ]',  ' mounting /portfolio'],
+      ['[  ok  ]',  ' connecting redis'],
+      ['[  ok  ]',  ' warming cache'],
+      ['[  ok  ]',  ' loading modules'],
+    ];
+    var bi = 0, bt = null, bootFlushed = false;
+    var bootReduced = window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var addBootLine = function (status, text, cls) {
+      var d = document.createElement('div');
+      if (cls) d.className = cls;
+      var b = document.createElement('b');
+      b.textContent = status;
+      d.appendChild(b);
+      d.appendChild(document.createTextNode(text));
+      bootEl.appendChild(d);
+    };
+    var nextBootLine = function () {
+      if (bi >= BOOT.length) return;
+      addBootLine(BOOT[bi][0], BOOT[bi][1]);
+      bi++;
+      bt = setTimeout(nextBootLine, 170 + Math.random() * 160);
+    };
+    var flushBoot = function () {
+      if (bootFlushed) return;
+      bootFlushed = true;
+      if (bt) clearTimeout(bt);
+      while (bi < BOOT.length) { addBootLine(BOOT[bi][0], BOOT[bi][1]); bi++; }
+      addBootLine('[ done ]', ' system ready', 'ak-pre-line-done');
+    };
+
+    if (bootReduced) {
+      while (bi < BOOT.length) { addBootLine(BOOT[bi][0], BOOT[bi][1]); bi++; }
+    } else {
+      bt = setTimeout(nextBootLine, 120);
+    }
+
+    var origReady = window.__akReady;
+    window.__akReady = function () { flushBoot(); origReady(); };
+  }
 })();
 </script>
 
@@ -175,10 +238,12 @@
 <script type="text/babel" src="/ui_kits/portfolio/Stack.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Projects.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Repositories.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/Heartbeat.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Contact.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/CustomCursor.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/LedgerBackground.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/CommandTerminal.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/DecryptHeadings.jsx"></script>
 <script type="text/babel" src="/interests/InterestsPage.jsx"></script>
 
 <script type="text/babel">
@@ -308,6 +373,7 @@ function App() {
       <LedgerBackground />
       <CustomCursor />
       <CommandTerminal />
+      <DecryptHeadings />
       {route === '/interests/' ? <InterestsRoute /> : <HomeRoute />}
     </>
   );

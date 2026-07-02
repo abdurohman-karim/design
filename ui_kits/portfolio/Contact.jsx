@@ -66,6 +66,7 @@ function Contact() {
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-faint)' }}>
             <span style={{ color: 'var(--text-secondary)' }}>aK</span> — Backend Developer
           </span>
+          {window.Heartbeat && <window.Heartbeat />}
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-faint)' }}>
             // built with PHP, Python &amp; coffee · 2025
           </span>
