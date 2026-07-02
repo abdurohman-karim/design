@@ -101,8 +101,10 @@
       /* Skyridge modal */
       .sky-overlay {
         position: fixed; inset: 0; z-index: var(--z-overlay);
-        display: grid; place-items: center;
-        padding: var(--container-pad);
+        display: flex; align-items: flex-start; justify-content: center;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: max(24px, var(--container-pad)) var(--container-pad);
         background: rgba(0,0,0,0.62);
         backdrop-filter: blur(var(--blur-md));
         -webkit-backdrop-filter: blur(var(--blur-md));
@@ -113,6 +115,7 @@
       .sky-panel {
         position: relative;
         max-width: 540px; width: 100%;
+        margin: auto 0;
         border-radius: var(--radius-xl);
         border: 1px solid var(--border-strong);
         background:
@@ -456,6 +459,17 @@
         return () => clearTimeout(t);
       }
     }, [open]);
+
+    /* Lock background scroll while the modal is up — otherwise the fixed
+       overlay stays put but the page behind it keeps scrolling, and on
+       short mobile viewports the form (and its submit button) can end up
+       taller than the screen with no way to reach it. */
+    React.useEffect(() => {
+      if (!mounted) return;
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }, [mounted]);
 
     const onSubmit = (e) => {
       e.preventDefault();
