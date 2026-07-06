@@ -48,9 +48,15 @@
 }
 </script>
 
+<link rel="preload" as="image" href="/assets/tv.png">
 <link rel="stylesheet" href="/styles.css">
 <style>
   html { scroll-behavior: smooth; }
+  /* Guard against stray horizontal scroll (full-bleed layers, GSAP pin-spacer,
+     sub-pixel rounding at non-100% browser zoom). `clip` — not `hidden` — so it
+     never becomes a scroll container that would break ScrollTrigger pinning or
+     position: sticky. */
+  html, body { overflow-x: clip; }
   body { margin: 0; background: var(--bg); }
   :root { --header-bg: rgba(0, 0, 0, 0.70); }
   [data-theme="light"] { --header-bg: rgba(255, 255, 255, 0.85); }
@@ -231,6 +237,7 @@
 
 <!-- All components load once into this single shell (SPA) — absolute paths so
      they resolve correctly even when the shell is served for /interests -->
+<script type="text/babel" src="/ui_kits/portfolio/IntroTV.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Header.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/DecryptBtn.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Hero.jsx"></script>
@@ -314,6 +321,12 @@ function App() {
   const [route, setRoute] = React.useState(() => routeOf(window.location.pathname));
   const pendingScroll = React.useRef(null);
 
+  /* Intro TV plays once per full page load (state resets on reload, no storage).
+     Skipped entirely when the user prefers reduced motion. */
+  const [introFinished, setIntroFinished] = React.useState(
+    () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+
   /* App is mounted and painted — dismiss the preloader */
   React.useEffect(() => {
     if (window.__akReady) requestAnimationFrame(() => window.__akReady());
@@ -369,6 +382,8 @@ function App() {
 
   return (
     <>
+      {/* Additive intro overlay — above everything, before the main content */}
+      {!introFinished && <IntroTV onFinish={() => setIntroFinished(true)} />}
       {/* Mounted before the routes so section content (equal z) paints above it */}
       <LedgerBackground />
       <CustomCursor />
