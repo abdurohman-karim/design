@@ -169,7 +169,11 @@ function StackDesktop() {
   const counterRef = React.useRef(null);
   const progRef    = React.useRef(null);
 
-  React.useEffect(() => {
+  /* useLayoutEffect, not useEffect: its cleanup runs before React detaches
+     the section from <main>. The pin wraps the section in a .pin-spacer, so
+     st.kill() must un-wrap it first or React's removeChild throws (and takes
+     the whole tree down) when the layout switches to mobile. */
+  React.useLayoutEffect(() => {
     const section = sectionRef.current;
     const cards   = cardsRef.current;
 
