@@ -51,7 +51,10 @@
 <link rel="preload" as="image" href="/assets/tv.png">
 <link rel="stylesheet" href="/styles.css">
 <style>
-  html { scroll-behavior: smooth; }
+  /* No CSS `scroll-behavior: smooth` here — it makes every programmatic
+     scroll animate, including the ones ScrollTrigger performs while
+     re-measuring a pinned section (Stack), which corrupts its start/end.
+     In-page navigation stays smooth via scrollIntoView({ behavior: 'smooth' }). */
   /* Guard against stray horizontal scroll (full-bleed layers, GSAP pin-spacer,
      sub-pixel rounding at non-100% browser zoom). `clip` — not `hidden` — so it
      never becomes a scroll container that would break ScrollTrigger pinning or
@@ -383,7 +386,11 @@ function App() {
   return (
     <>
       {/* Additive intro overlay — above everything, before the main content */}
-      {!introFinished && <IntroTV onFinish={() => setIntroFinished(true)} />}
+      {!introFinished && <IntroTV onFinish={() => {
+        setIntroFinished(true);
+        /* Stack's pin was measured under the intro's scroll lock — re-measure */
+        requestAnimationFrame(() => ScrollTrigger.refresh());
+      }} />}
       {/* Mounted before the routes so section content (equal z) paints above it */}
       <LedgerBackground />
       <CustomCursor />

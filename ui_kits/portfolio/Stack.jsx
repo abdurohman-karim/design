@@ -56,6 +56,11 @@ const GROUPS = [
 
 const n = GROUPS.length;
 
+/* Fixed header is ~75px tall (18px padding + 38px controls + 18px); the pinned
+   desktop section sits at the very top of the viewport, so its heading needs
+   to start below that. */
+const HEADER_CLEARANCE = 112;
+
 /* Shared card shell (outer container differs per layout; this is the chrome) */
 const CARD_SHELL = {
   borderRadius: 20,
@@ -170,7 +175,9 @@ function StackDesktop() {
 
     /* depth per "behind" layer */
     const LAYER = { y: 14, scale: 0.03, opacityStep: 0.22 };
-    const EXIT_Y = -(window.innerHeight * 0.9);
+    /* function values re-evaluate on refresh (invalidateOnRefresh) so a resize
+       mid-scroll doesn't leave the deck tuned to a stale viewport height */
+    const exitY  = () => -(window.innerHeight * 0.9);
     const ROTS   = [3.2, -3.5, 2.8]; /* alternating z-rotation on exit */
 
     /* ── seed initial stack state ── */
@@ -192,11 +199,13 @@ function StackDesktop() {
     for (let step = 0; step < n - 1; step++) {
       const rot = ROTS[step % ROTS.length];
 
-      /* active card flies off upward */
+      /* active card flies off upward; it fades out in the first ~40% of the
+         move so it is gone before it reaches the section heading */
       tl.to(cards[step], {
-        y: EXIT_Y, scale: 0.80, opacity: 0, rotation: rot,
+        y: exitY, scale: 0.80, rotation: rot,
         xPercent: -50, yPercent: -50, duration: 1,
       }, step);
+      tl.to(cards[step], { opacity: 0, duration: 0.4 }, step);
 
       /* all remaining cards advance one layer */
       for (let j = step + 1; j < n; j++) {
@@ -217,18 +226,25 @@ function StackDesktop() {
       pin:       true,
       scrub:     1.2,
       start:     'top top',
-      end:       `+=${window.innerHeight * (n - 1)}`,
+      end:       () => `+=${window.innerHeight * (n - 1)}`,
+      invalidateOnRefresh: true,
       animation: tl,
       onUpdate: (self) => {
-        const idx = Math.min(n - 1, Math.floor(self.progress * n));
+        /* n-1 transitions; the counter flips at the midpoint of each one,
+           when the incoming card has visibly taken over */
+        const idx = Math.round(self.progress * (n - 1));
         if (counterRef.current) counterRef.current.textContent = String(idx + 1).padStart(2, '0');
         if (progRef.current)    progRef.current.style.transform = `scaleY(${self.progress})`;
       },
     });
 
-    const onResize = () => ScrollTrigger.refresh();
-    window.addEventListener('resize', onResize);
-    return () => { st.kill(); window.removeEventListener('resize', onResize); };
+    /* Web fonts landing after mount shift the heading height → re-measure.
+       (ScrollTrigger already refreshes itself on window resize.) */
+    let alive = true;
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { if (alive) ScrollTrigger.refresh(); });
+    }
+    return () => { alive = false; st.kill(); };
   }, []);
 
   return (
@@ -241,14 +257,17 @@ function StackDesktop() {
       borderTop: '1px solid var(--border-subtle)',
     }}>
 
-      {/* ── Section heading (stays fixed at top of the pin) ── */}
+      {/* ── Section heading (stays fixed at top of the pin; above the deck so
+             an exiting card passes behind it) ── */}
       <div style={{
         flexShrink: 0,
         width: '100%',
         maxWidth: 'var(--container-max)',
         margin: '0 auto',
-        padding: '52px var(--container-pad) 0',
+        padding: `${HEADER_CLEARANCE}px var(--container-pad) 0`,
         boxSizing: 'border-box',
+        position: 'relative',
+        zIndex: n + 1,
       }}>
         <SectionHeading index={2} title="Stack"
           code={<><span style={{ color: 'var(--gray-400)' }}>print</span>(<span style={{ color: 'var(--gray-300)' }}>'Stack'</span>)</>}
