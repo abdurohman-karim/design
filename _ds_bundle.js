@@ -590,8 +590,11 @@ function ProjectCard({
   href = '#'
 }) {
   const [hovered, setHovered] = React.useState(false);
+  const external = /^https?:\/\//.test(href);
   return /*#__PURE__*/React.createElement("a", {
     href: href,
+    target: external ? '_blank' : undefined,
+    rel: external ? 'noopener noreferrer' : undefined,
     onMouseEnter: () => setHovered(true),
     onMouseLeave: () => setHovered(false),
     style: {

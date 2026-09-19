@@ -8,9 +8,12 @@ import { Icon } from '../core/Icon.jsx';
  */
 export function ProjectCard({ index, title, kind, description, features = [], stack = [], href = '#' }) {
   const [hovered, setHovered] = React.useState(false);
+  const external = /^https?:\/\//.test(href);
   return (
     <a
       href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{

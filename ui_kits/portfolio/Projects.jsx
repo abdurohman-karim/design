@@ -4,6 +4,7 @@ const { SectionHeading, ProjectCard } = window.DS;
 const PROJECTS = [
   {
     index: 1, title: 'uCash', kind: 'Payments platform · Laravel / PHP',
+    href: 'https://u-cash.uz',
     description: 'Money-transfer & payments platform with deep admin tooling and SBP (Faster Payments) integration.',
     features: [
       'Black / white-list system to block suspicious clients',
@@ -16,6 +17,7 @@ const PROJECTS = [
   },
   {
     index: 2, title: 'NutriCore', kind: 'AI nutrition assistant · Python / Telegram',
+    href: 'https://t.me/nutricoreuz_bot',
     description: 'Telegram nutrition assistant powered by a multi-provider LLM router with flexible subscriptions.',
     features: [
       'Multi-provider LLM router (OpenAI, Groq, DeepSeek, OpenRouter)',
@@ -27,6 +29,7 @@ const PROJECTS = [
   },
   {
     index: 3, title: 'Video Downloader Bot', kind: 'Telegram bot · aiogram 3 / yt-dlp',
+    href: 'https://t.me/keepdownload_bot',
     description: 'High-throughput Telegram bot that downloads Instagram / TikTok video with quality selection.',
     features: [
       'FSM-driven quality picker (Instagram / TikTok)',
@@ -37,7 +40,8 @@ const PROJECTS = [
     stack: ['Python', 'aiogram', 'yt-dlp', 'aiosqlite'],
   },
   {
-    index: 4, title: 'E-commerce Platform', kind: 'Storefront · Laravel',
+    index: 4, title: 'MJ Bazaar', kind: 'E-commerce storefront · Laravel',
+    href: 'https://apps.apple.com/us/app/mj-bazaar/id6784791264',
     description: 'Laravel e-commerce build with Uzbekistan geodata and config-switchable ordering.',
     features: [
       'Uzbekistan geodata (regions / districts)',
@@ -45,6 +49,19 @@ const PROJECTS = [
       'Order-request system, toggleable via config',
     ],
     stack: ['PHP', 'Laravel', 'PostgreSQL'],
+  },
+  {
+    index: 5, title: 'Coddle', kind: 'Coding-practice platform · Next.js / NestJS',
+    href: 'https://coddle.uz',
+    description: 'Coding-practice platform with an AI tutor, 1v1 real-time battles and a classroom layer for teachers — in Uzbek, Russian and English.',
+    features: [
+      'Leveled AI hints (Gemini) that nudge, never solve',
+      'Sandboxed judging via Piston / Judge0 — Python, JS, C++, Java',
+      '1v1 battles: matchmaking, ELO rating, live verdicts over WebSockets',
+      'Organizations & roles: teacher dashboard, assignments, org leaderboard',
+      'XP, streaks, achievements + Excel task-bank import / export',
+    ],
+    stack: ['TypeScript', 'Next.js', 'NestJS', 'Prisma', 'PostgreSQL', 'Redis', 'Docker'],
   },
 ];
 
