@@ -4,8 +4,10 @@
 // mounted at the top of <App>, above all content; never touches other logic.
 
 /* Inject the stylesheet once. All colours come from existing theme tokens.
-   Fixed monochrome tokens (--black, --gray-*, --ink-*) are used for the CRT
-   itself so the bright/dark relationship holds in BOTH themes (--white flips). */
+   The room around the set follows the page theme (--bg), so a light-theme
+   visitor gets a light room instead of a black slab between the preloader and
+   the site. Fixed monochrome tokens (--black, --gray-*, --ink-*) are used for
+   the CRT screen itself so the bright/dark relationship holds in BOTH themes. */
 if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css')) {
   const s = document.createElement('style');
   s.id = 'ak-introtv-css';
@@ -20,8 +22,12 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
       position: fixed; inset: 0;
       z-index: 999999; overflow: hidden; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      background: var(--black);
+      background: var(--bg, #000);
+      --ak-tv-spark: #fff6ea;    /* whisper-warm white embers on the dark room */
       animation: ak-tv-overlayout .4s var(--ease-out, ease) 3.35s forwards;
+    }
+    [data-theme="light"] .ak-introtv {
+      --ak-tv-spark: #2a2a2a;    /* dark embers so they read on the light room */
     }
     /* faint site grid texture on the black room */
     .ak-introtv::before {
@@ -114,7 +120,7 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
     }
     .ak-tv-spark svg { position: absolute; left: 0; top: 0; overflow: visible; display: block; }
     .ak-tv-spark path {
-      fill: none; stroke: #fff6ea;   /* whisper-warm white — reads monochrome, warms the bloom */
+      fill: none; stroke: var(--ak-tv-spark);
       stroke-linecap: round; stroke-linejoin: round;
       filter: url(#ak-spark-glow);
     }
