@@ -997,6 +997,10 @@ function IntroTV({ onFinish }) {
     /* 4 ─ pull out: the set returns under the world inside, which is now
        clipped to the glass and shrinks with it until it IS the picture */
     const ex = AK_T.exit;
+    // the reel only shrinks from here on: hand its scaling to the compositor.
+    // Promoted during the lockup's quiet hold, so building the layers doesn't
+    // land on the first frame of the move.
+    tl.call(() => { el.stage.style.willChange = el.lock.style.willChange = 'transform'; }, null, AK_T.b3 + 1.0);
     // re-dress the set a beat early, hidden under the world inside, so its
     // first paint at this scale doesn't land on the first frame of the move
     // (the picture on the glass stays blank until the hand-over: it's under the
@@ -1007,11 +1011,7 @@ function IntroTV({ onFinish }) {
       .set(el.content, { x: 0, skewX: 0, scaleX: 1, scaleY: 1 }, ex - 0.3)
       .set([el.content, el.scan, el.roll], { opacity: 1 }, AK_T.back - 0.35)
       .set(el.stat, { opacity: 0.12 }, AK_T.back - 0.35)
-      .call(() => {
-        st.mode = 2; st.rEnd = null;
-        // the reel only shrinks from here: let the compositor scale its raster
-        el.stage.style.willChange = el.lock.style.willChange = 'transform';
-      }, null, ex)
+      .call(() => { st.mode = 2; st.rEnd = null; }, null, ex)
       .to([el.name, el.role], { opacity: 0, y: -6, duration: 0.35, ease: 'power2.in' }, ex)
       .to(el.fine, { opacity: 0, duration: 0.45 }, ex)
       .to(el.crt, { opacity: 1, duration: 0.45 }, ex)
