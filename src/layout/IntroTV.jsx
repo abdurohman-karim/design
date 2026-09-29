@@ -13,12 +13,45 @@
 
 // (body left unindented inside the IIFE to keep the file's git history readable)
 (() => {
+/* TV static as bitmap tiles, drawn once. (An SVG feTurbulence background
+   gets re-rasterised at every new camera scale, i.e. on every frame of a
+   dolly — the single most expensive thing the film used to do.)
+   Several different frames of "snow": the film shows a new one at a random
+   offset ~60 times a second, the way a tube draws fresh noise every field —
+   one tile nudged back and forth reads as a picture that shakes. Each row
+   gets its own gain (the beam sweeps line by line), and each frame its own
+   overall level, so the snow flickers and streaks like the real thing. */
+const AK_NOISES = [1, 0.8, 1.15, 0.9, 1.05, 0.85].map((gain) => {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const x = c.getContext('2d');
+    const img = x.createImageData(128, 128);
+    for (let y = 0; y < 128; y++) {
+      const row = gain * (Math.random() < 0.05 ? 1.45 : 0.75 + Math.random() * 0.5);
+      for (let i = y * 512; i < (y + 1) * 512; i += 4) {
+        // mean of two: grainy "snow" with sparkle, not flat salt-and-pepper
+        const v = (Math.random() + Math.random()) * 127.5 * row;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = v;   // the array clamps
+        img.data[i + 3] = 255;
+      }
+    }
+    x.putImageData(img, 0, 0);
+    return 'url(' + c.toDataURL('image/png') + ')';
+  } catch (e) { return 'none'; }
+});
+const AK_NOISE = AK_NOISES[0];
+
 /* Inject the stylesheet once. All colours come from existing theme tokens.
    The room around the set follows the page theme (--bg), so a light-theme
    visitor gets a light room instead of a black slab between the preloader and
    the site. Fixed monochrome tokens (--black, --gray-*, --ink-*) are used for
    the CRT screen and the world inside it, so the bright/dark relationship
-   holds in BOTH themes. */
+   holds in BOTH themes.
+   Performance: no mix-blend-mode anywhere (every overlay here sits on black,
+   where plain alpha looks the same and composites far cheaper), no CSS
+   filters on anything the camera scales, and the layers that change every
+   frame are promoted with will-change. */
 if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css')) {
   const s = document.createElement('style');
   s.id = 'ak-introtv-css';
@@ -51,7 +84,7 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
     .ak-tv-world {
       position: absolute; inset: 0;
       display: flex; align-items: center; justify-content: center;
-      transform-origin: 50% 50%;
+      transform-origin: 50% 50%; will-change: transform;
     }
     /* faint site grid on the back wall — further than the set, so it
        grows slower while the camera pushes in (parallax) */
@@ -75,8 +108,11 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
     .ak-tv-img {
       position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2;
       user-select: none; -webkit-user-drag: none;
-      filter: grayscale(1) contrast(1.02);
+      filter: grayscale(1) contrast(1.02);   /* until the baked copy is ready */
     }
+    .ak-tv-img.is-baked { filter: none; }
+    /* depth of field: a pre-blurred twin cross-faded in as the glass nears */
+    .ak-tv-img--soft { opacity: 0; }
     /* dark tube behind the glass: the cut-out in tv.png is translucent and a
        little wider than .ak-tv-screen, so without this the room (white in the
        light theme) shows through its rim — and the camera magnifies it */
@@ -108,18 +144,21 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
 
     /* Header logo (monogram + syneTra wordmark). Sized in em so the copy
        inside the screen world is an exact scaled twin of this one. */
+    /* phosphor glow via text/box-shadow, not filter: drop-shadow — a filter
+       would be recomputed on every frame the camera scales the logo */
     .ak-tv-logo {
       display: flex; align-items: center; gap: .58em;
       font-size: clamp(15px, 4.6vw, 24px);
       animation: ak-tv-flicker 1.7s steps(24, end) infinite;
-      filter: drop-shadow(0 0 .58em rgba(255,255,255,.38));
+      text-shadow: 0 0 .45em rgba(255,255,255,.42);
     }
     .ak-tv-mark {
       font-size: 1.25em; width: 2.08em; height: 2.08em; flex: none;
       display: grid; place-items: center;
       border: max(1px, .034em) solid var(--gray-300); border-radius: .4em;
       font-family: var(--font-display); font-weight: 600; letter-spacing: -0.04em;
-      color: var(--gray-100); box-shadow: inset 0 .034em 0 rgba(255,255,255,.12);
+      color: var(--gray-100);
+      box-shadow: inset 0 .034em 0 rgba(255,255,255,.12), 0 0 .4em rgba(255,255,255,.2), inset 0 0 .3em rgba(255,255,255,.1);
     }
     .ak-tv-word {
       font-family: var(--font-display); letter-spacing: -0.01em; white-space: nowrap;
@@ -131,28 +170,24 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
     .ak-tv-scanlines {
       background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.42) 75%);
       background-size: 100% 4px;
-      opacity: 0; mix-blend-mode: multiply;
-      animation: ak-tv-scan 6s linear infinite;
+      opacity: 0;
     }
     /* grayscale static / noise */
     .ak-tv-static, .ak-in-static, .ak-tv-screen > .ak-tv-tear {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-image: ${AK_NOISE};
     }
-    .ak-tv-static {
-      opacity: 0; mix-blend-mode: screen;
-      animation: ak-tv-static-shift .16s steps(3, end) infinite;
-    }
+    .ak-tv-static { opacity: 0; }   /* a fresh frame of snow every field — see render() */
     /* a soft brighter band rolling down the tube */
     .ak-tv-screen > .ak-tv-roll {
-      bottom: auto; height: 34%; opacity: 0; mix-blend-mode: screen;
+      bottom: auto; height: 34%; opacity: 0;
       background: linear-gradient(to bottom, transparent, rgba(228,228,228,.05) 40%,
         rgba(228,228,228,.09) 50%, rgba(228,228,228,.05) 60%, transparent);
       animation: ak-tv-rollbar 3.4s linear infinite;
     }
     /* signal tearing during the short circuit */
     .ak-tv-screen > .ak-tv-tear {
-      bottom: auto; height: 5%; opacity: 0; mix-blend-mode: screen;
-      background-color: rgba(228,228,228,.22);
+      bottom: auto; height: 5%; opacity: 0;
+      background-color: rgba(228,228,228,.22); background-blend-mode: soft-light;
       box-shadow: 0 -1px 0 rgba(255,255,255,.55);
     }
     /* electric arcs crawling over the glass */
@@ -165,7 +200,7 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
       stroke-linecap: round; stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
     }
-    .ak-tv-flash { background: var(--gray-100); opacity: 0; mix-blend-mode: screen; }
+    .ak-tv-flash { background: var(--gray-100); opacity: 0; }
 
     /* power-ON bright fill: horizontal line → full screen → fades to content */
     .ak-tv-on {
@@ -221,7 +256,7 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
     /* ── Inside the screen: full-viewport world, clipped to the glass on the way out ── */
     .ak-tv-inside {
       position: absolute; inset: 0; z-index: 2; overflow: hidden;
-      background: var(--black); visibility: hidden; opacity: 0;
+      background: var(--black); visibility: hidden; opacity: 0; will-change: opacity;
     }
     .ak-tv-inside > * { position: absolute; inset: 0; pointer-events: none; }
     .ak-tv-inside canvas { width: 100%; height: 100%; display: block; }
@@ -241,6 +276,8 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
       color: var(--gray-200);
     }
     .ak-in-line { display: block; white-space: nowrap; }
+    /* words / items / the lockup blur in: own layers, so the blur is composited */
+    .ak-in-w, .ak-in-item, .ak-in-pop { will-change: opacity, filter; }
     .ak-in-w { display: inline-block; }
     .ak-in-hot { color: #fff; text-shadow: 0 0 .32em rgba(255,255,255,.34); }
     .ak-in-roll {
@@ -270,26 +307,32 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
       letter-spacing: .24em; text-transform: uppercase; color: var(--gray-500);
       white-space: nowrap; opacity: 0;
     }
-    .ak-in-static { opacity: .06; mix-blend-mode: screen; animation: ak-tv-static-shift .16s steps(3, end) infinite; }
+    /* live snow like the tube's (render()); its own layer, so a new field
+       never repaints the copy under it */
+    .ak-in-static { opacity: .06; background-size: 256px 128px; will-change: transform; }
     .ak-in-fine {
       background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.34) 75%);
-      background-size: 100% 3px; opacity: 0; mix-blend-mode: multiply;
+      background-size: 100% 3px; opacity: 0;
     }
-    .ak-in-crt {
+    /* the glass's own scanlines on the way out: sized to the screen box and
+       moved with a transform (JS), so the camera move never repaints them */
+    .ak-tv-inside > .ak-in-crt {
+      right: auto; bottom: auto; transform-origin: 0 0; will-change: transform;
       background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.42) 75%);
-      background-size: 100% 4px; opacity: 0; mix-blend-mode: multiply;
+      background-size: 100% 4px; opacity: 0;
     }
     .ak-in-vig { background: radial-gradient(ellipse 80% 76% at 50% 50%, transparent 55%, rgba(0,0,0,.62) 100%); }
 
     /* ── Lens: vignette that tightens with camera speed + the glass-crossing bloom ── */
     .ak-tv-lens {
-      position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
+      position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; will-change: opacity;
       background: radial-gradient(ellipse 72% 68% at 50% 50%, transparent 48%, rgba(0,0,0,.62) 100%);
     }
+    /* drawn small and scaled up on the compositor (a soft gradient loses nothing) */
     .ak-tv-bloom {
       position: absolute; left: 50%; top: 50%; z-index: 4; pointer-events: none;
-      width: 130vmax; height: 130vmax; margin: -65vmax 0 0 -65vmax;
-      border-radius: 50%; opacity: 0;
+      width: 40vmax; height: 40vmax; margin: -20vmax 0 0 -20vmax;
+      border-radius: 50%; opacity: 0; will-change: transform, opacity;
       background: radial-gradient(circle, rgba(236,236,236,.95) 0%, rgba(236,236,236,.42) 20%,
         rgba(236,236,236,.1) 42%, transparent 66%);
     }
@@ -308,11 +351,6 @@ if (typeof document !== 'undefined' && !document.getElementById('ak-introtv-css'
       41% { opacity: 0.82; } 43% { opacity: 1; }
       68% { opacity: 0.45; } 70% { opacity: 1; }
       88% { opacity: 0.9; }
-    }
-    @keyframes ak-tv-scan { 0% { background-position: 0 0; } 100% { background-position: 0 8px; } }
-    @keyframes ak-tv-static-shift {
-      0% { transform: translate(0,0); } 33% { transform: translate(-6px,4px); }
-      66% { transform: translate(5px,-5px); } 100% { transform: translate(-3px,7px); }
     }
     @keyframes ak-tv-rollbar { 0% { transform: translateY(-100%); } 100% { transform: translateY(300%); } }
     /* (the film itself is one GSAP timeline; sparks + smoke use the Web Animations API) */
@@ -504,12 +542,13 @@ function akDrawWarp(ctx, cv, w, dpr, dt) {
   const F = 0.32 * Math.min(CW, CH) * w.zoom;
   const dz = w.v * dt, zk = Math.min(1, w.zoom * 1.4);
 
-  // faint light at the vanishing point
-  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, F * 1.6);
+  // faint light at the vanishing point (filled over its own box only)
+  const R = F * 1.6;
+  const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
   glow.addColorStop(0, `rgba(228,228,228,${(0.08 * w.a).toFixed(3)})`);
   glow.addColorStop(1, 'rgba(228,228,228,0)');
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, CW, CH);
+  ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
 
   // corridor of screen outlines (same 1.25 aspect + corner radii as the glass)
   ctx.lineWidth = Math.max(0.6, dpr * zk);
@@ -544,6 +583,63 @@ function akDrawWarp(ctx, cv, w, dpr, dt) {
     ctx.stroke();
   }
 }
+
+/* ── tv.png, baked once while the page is idle ──
+   Grayscale + contrast (what the CSS filter redid on every repaint of the
+   scaled set) and a blurred twin for the depth of field, which is then just
+   cross-faded instead of re-filtering the bezel on every frame. */
+const akTvBake = { sharp: null, soft: null };
+
+// Separable box blur, one pass per radius (three ≈ a Gaussian), on
+// premultiplied alpha so the translucent glass and the edges don't halo.
+function akBlur(d, w, h, radii) {
+  const p = d.data, n = w * h;
+  const buf = new Float32Array(n * 4), tmp = new Float32Array(n * 4);
+  for (let i = 0; i < n * 4; i += 4) {
+    const a = p[i + 3] / 255;
+    buf[i] = p[i] * a; buf[i + 1] = p[i + 1] * a; buf[i + 2] = p[i + 2] * a; buf[i + 3] = p[i + 3];
+  }
+  const pass = (src, dst, r, horiz) => {
+    const len = horiz ? w : h, lines = horiz ? h : w, step = horiz ? 4 : w * 4, k = 1 / (2 * r + 1);
+    for (let l = 0; l < lines; l++) {
+      const base = horiz ? l * w * 4 : l * 4;
+      for (let ch = 0; ch < 4; ch++) {
+        let acc = 0;
+        for (let j = -r; j <= r; j++) acc += src[base + akClamp(j, 0, len - 1) * step + ch];
+        for (let i = 0; i < len; i++) {
+          dst[base + i * step + ch] = acc * k;
+          acc += src[base + Math.min(len - 1, i + r + 1) * step + ch] - src[base + Math.max(0, i - r) * step + ch];
+        }
+      }
+    }
+  };
+  radii.forEach((r) => { pass(buf, tmp, r, true); pass(tmp, buf, r, false); });
+  for (let i = 0; i < n * 4; i += 4) {
+    const a = buf[i + 3], m = a > 0 ? 255 / a : 0;
+    p[i] = buf[i] * m; p[i + 1] = buf[i + 1] * m; p[i + 2] = buf[i + 2] * m; p[i + 3] = a;
+  }
+}
+function akBakeTv() {
+  const img = new Image();
+  img.src = '/assets/tv.png';
+  img.decode().then(() => {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(img, 0, 0);
+    const d = x.getImageData(0, 0, w, h), p = d.data;
+    for (let i = 0; i < p.length; i += 4) {        // grayscale(1) contrast(1.02); the array clamps
+      p[i] = p[i + 1] = p[i + 2] = (0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2] - 127.5) * 1.02 + 127.5;
+    }
+    const url = () => new Promise((res) => { x.putImageData(d, 0, 0); c.toBlob((b) => res(b && URL.createObjectURL(b))); });
+    return url().then((sharp) => {
+      akBlur(d, w, h, [2, 1, 1]);                    // ≈ σ 1.8 source px; the camera scale grows it
+      return url().then((soft) => { akTvBake.sharp = sharp; akTvBake.soft = soft; });
+    });
+  }).catch(() => {});                              // fall back to the CSS filter, no depth of field
+}
+if (typeof window !== 'undefined') (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(akBakeTv);
 
 /* ── Audio ───────────────────────────────────────────────────────────────────
    One clip, played as cues along the film. Each cue is
@@ -635,6 +731,7 @@ function IntroTV({ onFinish }) {
     const qa = (s) => Array.from(root.querySelectorAll(s));
     const el = {
       world: q('.ak-tv-world'), room: q('.ak-tv-room'), set: q('.ak-tv-set'), img: q('.ak-tv-img'),
+      soft: q('.ak-tv-img--soft'), backing: q('.ak-tv-backing'),
       spill: q('.ak-tv-spill'), content: q('.ak-tv-content'), logo: q('.ak-tv-screen .ak-tv-logo'),
       scan: q('.ak-tv-scanlines'), stat: q('.ak-tv-static'), roll: q('.ak-tv-roll'),
       tears: qa('.ak-tv-tear'), arcs: qa('.ak-tv-arcs path'), flash: q('.ak-tv-flash'),
@@ -644,7 +741,7 @@ function IntroTV({ onFinish }) {
       stack: q('.ak-in-stack'), lock: q('.ak-in-lock'), pop: q('.ak-in-pop'),
       inLogo: q('.ak-in-logo'), inWord: q('.ak-in-logo .ak-tv-word'),
       name: q('.ak-in-name'), role: q('.ak-in-role'),
-      fine: q('.ak-in-fine'), crt: q('.ak-in-crt'), vig: q('.ak-in-vig'),
+      inStat: q('.ak-in-static'), fine: q('.ak-in-fine'), crt: q('.ak-in-crt'), vig: q('.ak-in-vig'),
       lens: q('.ak-tv-lens'), bloom: q('.ak-tv-bloom'),
     };
     const sparkEls = [], puffEls = [];
@@ -654,18 +751,27 @@ function IntroTV({ onFinish }) {
 
     const cam = { p: -0.06, roll: -0.9, sx: 0, sy: 0 };   // p: depth on a log scale (see AK_P_IN)
     const warp = akMakeWarp();
-    const st = { mode: 0, rEnd: null, lens: 0, lastP: cam.p };   // mode: 0 off, 1 inside, 2 on the glass
+    const st = { mode: 0, rEnd: null, lens: 0, lastP: cam.p, snowT: 0, snow: 0 };   // mode: 0 off, 1 inside, 2 on the glass
     const geo = { vw: 0, vh: 0, W: 0, H: 0, Kf: 4, dpr: 1 };
     const anims = [];
+    // write a style only when it changed — most frames most layers hold still
+    const last = new Map();
+    const put = (node, prop, v) => {
+      const m = last.get(node) || last.set(node, {}).get(node);
+      if (m[prop] !== v) { m[prop] = v; node.style[prop] = v; }
+    };
 
     const measure = () => {
       geo.vw = root.clientWidth; geo.vh = root.clientHeight;
       geo.W = el.set.offsetWidth; geo.H = el.set.offsetHeight;
       // camera scale at which the screen (rounded corners included) covers the frame
       geo.Kf = Math.max(geo.vw / (geo.W * AK_SCR.w), geo.vh / (geo.H * AK_SCR.h)) * 1.12;
-      geo.dpr = Math.min(2, window.devicePixelRatio || 1);
+      // the streaks are soft and moving: 1.5× density looks the same as 2× for half the fill
+      geo.dpr = Math.min(1.5, window.devicePixelRatio || 1);
       el.canvas.width = Math.round(geo.vw * geo.dpr);
       el.canvas.height = Math.round(geo.vh * geo.dpr);
+      el.crt.style.width = AK_SCR.w * geo.W + 'px';
+      el.crt.style.height = AK_SCR.h * geo.H + 'px';
       st.rEnd = null;
     };
 
@@ -679,19 +785,32 @@ function IntroTV({ onFinish }) {
       const u = 1 - Math.pow(1 - akClamp(cam.p, 0, 1), 3);
       const Lx = akLerp(W / 2, (AK_SCR.l + AK_SCR.w / 2) * W, u);
       const Ly = akLerp(H / 2, (AK_SCR.t + AK_SCR.h / 2) * H, u);
-      el.set.style.transform = `translate(${(W / 2 - K * Lx).toFixed(2)}px, ${(H / 2 - K * Ly).toFixed(2)}px) scale(${K.toFixed(4)})`;
-      el.world.style.transform = `translate(${cam.sx.toFixed(2)}px, ${cam.sy.toFixed(2)}px) rotate(${cam.roll.toFixed(3)}deg)`;
-      el.room.style.transform = `scale(${Math.pow(K, 0.3).toFixed(4)})`;
-      // depth of field: the bezel drifts out of focus as the glass nears
-      // (the blur runs before the scale, so divide by K for on-screen pixels)
-      const dof = 7 * akSmooth(0.3, 1, cam.p);
-      el.img.style.filter = dof > 0.05 ? `grayscale(1) contrast(1.02) blur(${(dof / K).toFixed(2)}px)` : '';
+      put(el.set, 'transform', `translate(${(W / 2 - K * Lx).toFixed(2)}px, ${(H / 2 - K * Ly).toFixed(2)}px) scale(${K.toFixed(4)})`);
+      put(el.world, 'transform', `translate(${cam.sx.toFixed(2)}px, ${cam.sy.toFixed(2)}px) rotate(${cam.roll.toFixed(3)}deg)`);
+      put(el.room, 'transform', `scale(${Math.pow(K, 0.3).toFixed(4)})`);
+      // static grain grows only gently with the camera (a bitmap blown up K×
+      // turns into blobs); a new tile size is just a re-tiled image, no filter
+      // (grains twice as wide as tall: the beam smears noise along the line)
+      const g = 128 / Math.pow(Math.max(1, K), 0.6);
+      put(el.stat, 'backgroundSize', `${(2 * g).toFixed(1)}px ${g.toFixed(1)}px`);
+      // live snow: a different tile at a random offset each field (~60/s)
+      st.snowT += dt;
+      if (st.snowT >= 0.0155) {
+        st.snowT = 0;
+        st.snow = (st.snow + 1 + ((Math.random() * (AK_NOISES.length - 1)) | 0)) % AK_NOISES.length;
+        const field = (n) => {
+          n.style.backgroundImage = AK_NOISES[st.snow];
+          n.style.backgroundPosition = `${(Math.random() * 256) | 0}px ${(Math.random() * 128) | 0}px`;
+        };
+        if (parseFloat(el.stat.style.opacity) > 0) field(el.stat);
+        if (st.mode) field(el.inStat);
+      }
       // lens vignette tightens with camera speed (a jump between shots is a cut, not speed)
       const dp = Math.abs(cam.p - st.lastP);
       const speed = dp > 0.2 ? 0 : dp / dt;
       st.lastP = cam.p;
       st.lens += (akClamp(speed * 0.55, 0, 0.9) - st.lens) * Math.min(1, dt * 7);
-      el.lens.style.opacity = st.lens.toFixed(3);
+      put(el.lens, 'opacity', st.lens.toFixed(2));
 
       if (st.mode === 2) {
         // backing out: the world inside is clipped to the glass and shrinks with it
@@ -706,14 +825,21 @@ function IntroTV({ onFinish }) {
         if (st.rEnd == null) st.rEnd = (el.logo.offsetWidth * Math.pow(Kf, AK_P0)) / Math.max(1, el.inLogo.offsetWidth);
         const prog = 1 - akClamp(cam.p / AK_P0, 0, 1);
         el.lock.style.transform = `scale(${Math.pow(st.rEnd, prog).toFixed(4)})`;
-        el.crt.style.backgroundSize = `100% ${(4 * K).toFixed(2)}px`;
-        el.crt.style.backgroundPosition = `0 ${y0.toFixed(1)}px`;
+        el.crt.style.transform = `translate(${x0.toFixed(1)}px, ${y0.toFixed(1)}px) scale(${K.toFixed(4)})`;
       }
       if (st.mode) akDrawWarp(ctx, el.canvas, warp, geo.dpr, dt);
     };
 
     measure();
     render(0, 16);
+    /* Warm-up while the screen is still dark: decode the set's images, give
+       the canvas its backing store, and let the world inside get rasterised
+       (it's composited at opacity 0) — otherwise all of that lands on the
+       first frames of the dive through the glass. */
+    [el.img, el.soft].forEach((n) => { if (n && n.decode) n.decode().catch(() => {}); });
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    ctx.fillRect(0, 0, 1, 1);
+    el.inside.style.visibility = 'visible';
     gsap.ticker.add(render);
     window.addEventListener('resize', measure);
 
@@ -723,7 +849,6 @@ function IntroTV({ onFinish }) {
     const ft = (t, a, b, at) => tl.fromTo(t, a, Object.assign({ immediateRender: false }, b), at);
     const toInside = () => {
       st.mode = 1;
-      el.inside.style.visibility = 'visible';
       el.inside.style.clipPath = 'none';
       el.stage.style.transform = '';
       warp.cx = geo.vw / 2; warp.cy = geo.vh / 2; warp.zoom = 1;
@@ -734,8 +859,10 @@ function IntroTV({ onFinish }) {
         .to(warp, { v: 2.4, duration: 0.4, ease: 'power2.in' }, at)
         .to(warp, { v: 0.28, duration: 1.0, ease: 'power3.out' }, at + 0.4);
     };
-    const beatIn = (beat, at) => ft(beat, { opacity: 0, scale: 0.84, filter: 'blur(8px)' },
-      { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.85, ease: 'power3.out' }, at);
+    // no blur on the beat itself: its words / items blur in on their own, and a
+    // filter wrapped around filters is the costliest thing a browser can draw
+    const beatIn = (beat, at) => ft(beat, { opacity: 0, scale: 0.84 },
+      { opacity: 1, scale: 1, duration: 0.85, ease: 'power3.out' }, at);
     const scramble = (node, at, d) => tl.call(() => window.akMotion && window.akMotion.scramble(node, d), null, at);
     const pop = (t, peak) => tl.to(el.flash, { opacity: peak, duration: 0.035, ease: 'none' }, t)
       .to(el.flash, { opacity: 0, duration: 0.24, ease: 'power2.out' }, t + 0.035);
@@ -807,6 +934,7 @@ function IntroTV({ onFinish }) {
     /* 2 ─ dolly in: the logo breaks up into signal as the glass nears, the
        screen fills the frame, then the camera dives through it */
     tl.to(cam, { p: 1, duration: AK_T.fill - AK_T.dolly, ease: 'power2.inOut' }, AK_T.dolly)
+      .to(el.spill, { opacity: 0, duration: 0.8 }, AK_T.dolly + 0.6)
       .to(el.content, { keyframes: [
         { x: -7, skewX: 14, duration: 0.05 },
         { x: 5, skewX: -8, duration: 0.05 },
@@ -826,8 +954,8 @@ function IntroTV({ onFinish }) {
       .fromTo(warp, { v: 0.9 }, { v: 7, duration: 0.45, ease: 'power2.in', immediateRender: false }, AK_T.plunge + 0.13)
       .to(warp, { v: 0.28, duration: 1.4, ease: 'power3.out' }, AK_T.plunge + 0.58);
     // passing the glass: a soft phosphor bloom from the centre
-    ft(el.bloom, { opacity: 0, scale: 0.25 }, { opacity: 0.55, scale: 1.2, duration: 0.25, ease: 'power2.in' }, AK_T.plunge + 0.3);
-    tl.to(el.bloom, { opacity: 0, scale: 2.2, duration: 0.5, ease: 'power2.out' }, AK_T.plunge + 0.55)
+    ft(el.bloom, { opacity: 0, scale: 0.8 }, { opacity: 0.55, scale: 3.9, duration: 0.25, ease: 'power2.in' }, AK_T.plunge + 0.3);
+    tl.to(el.bloom, { opacity: 0, scale: 7.2, duration: 0.5, ease: 'power2.out' }, AK_T.plunge + 0.55)
       .set(el.set, { visibility: 'hidden' }, AK_T.plunge + 0.66);
 
     /* 3 ─ the reel inside the screen */
@@ -871,11 +999,19 @@ function IntroTV({ onFinish }) {
     const ex = AK_T.exit;
     // re-dress the set a beat early, hidden under the world inside, so its
     // first paint at this scale doesn't land on the first frame of the move
+    // (the picture on the glass stays blank until the hand-over: it's under the
+    // reel the whole way, and every frame of the move would repaint it)
     tl.set(cam, { p: AK_P0 }, ex - 0.3)
       .set(el.set, { visibility: 'visible' }, ex - 0.3)
-      .set(el.content, { opacity: 1, x: 0, skewX: 0, scaleX: 1, scaleY: 1 }, ex - 0.3)
-      .set(el.stat, { opacity: 0.12 }, ex - 0.3)
-      .call(() => { st.mode = 2; st.rEnd = null; }, null, ex)
+      .set([el.content, el.scan, el.stat, el.roll], { opacity: 0 }, ex - 0.3)
+      .set(el.content, { x: 0, skewX: 0, scaleX: 1, scaleY: 1 }, ex - 0.3)
+      .set([el.content, el.scan, el.roll], { opacity: 1 }, AK_T.back - 0.35)
+      .set(el.stat, { opacity: 0.12 }, AK_T.back - 0.35)
+      .call(() => {
+        st.mode = 2; st.rEnd = null;
+        // the reel only shrinks from here: let the compositor scale its raster
+        el.stage.style.willChange = el.lock.style.willChange = 'transform';
+      }, null, ex)
       .to([el.name, el.role], { opacity: 0, y: -6, duration: 0.35, ease: 'power2.in' }, ex)
       .to(el.fine, { opacity: 0, duration: 0.45 }, ex)
       .to(el.crt, { opacity: 1, duration: 0.45 }, ex)
@@ -884,9 +1020,14 @@ function IntroTV({ onFinish }) {
       .to(warp, { v: -0.12, duration: 1.3, ease: 'power2.out' }, ex + 0.45)
       .to(cam, { p: 0, duration: AK_T.back - ex, ease: 'power2.inOut' }, ex)
       .to(cam, { roll: 0.7, duration: 0.9, ease: 'sine.inOut' }, ex + 0.35)
+      .to(el.spill, { opacity: 0.75, duration: 0.8 }, ex + 1.1)
       .to(cam, { roll: 0, duration: 1.0, ease: 'sine.inOut' }, ex + 1.25)
       .to(el.inside, { opacity: 0, duration: 0.35, ease: 'sine.inOut' }, AK_T.back - 0.25)
-      .call(() => { st.mode = 0; el.inside.style.visibility = 'hidden'; }, null, AK_T.back + 0.15);
+      .call(() => {
+        st.mode = 0;
+        el.inside.style.visibility = 'hidden';
+        el.stage.style.willChange = el.lock.style.willChange = '';
+      }, null, AK_T.back + 0.15);
 
     /* 5 ─ short circuit */
     const [f1, f2, f3] = AK_T.faults;
@@ -1031,7 +1172,9 @@ function IntroTV({ onFinish }) {
             {sparks.map((s, i) => (s.zone === 'top' ? sparkNode(s, i) : null))}
           </div>
 
-          <img className="ak-tv-img" src="/assets/tv.png" alt="" draggable="false" />
+          <img className={'ak-tv-img' + (akTvBake.sharp ? ' is-baked' : '')}
+            src={akTvBake.sharp || '/assets/tv.png'} alt="" draggable="false" />
+          {akTvBake.soft && <img className="ak-tv-img ak-tv-img--soft is-baked" src={akTvBake.soft} alt="" draggable="false" />}
 
           {/* Screen — mapped over the white cut-out of the TV image */}
           <div className="ak-tv-screen">
