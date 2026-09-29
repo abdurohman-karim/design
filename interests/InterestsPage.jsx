@@ -1,9 +1,24 @@
-// Interests & Hobbies — standalone page. Ice cards with procedural crack + dust effect.
-// Monochrome frost aesthetic, uses existing design tokens only.
+// Interests & Hobbies — standalone page. Ice cards that fracture under the
+// pointer and refreeze when it leaves. Monochrome frost aesthetic, design
+// tokens only (so the ice flips correctly with the light theme).
+//
+// Fracture model (per hit, all procedural):
+//   crush zone   — white, opaque pulverised ice + micro-cracks at the impact
+//   radials      — 7–11 jagged (midpoint-displacement) cracks, tapered ribbons
+//                  thick at the impact and needle-thin at the tip
+//   rings        — concentric cracks between neighbouring radials that sag
+//                  toward the impact, like a spider web
+//   facets       — the cells between radials and rings, each tilted a little
+//                  so it catches more or less light
+//   depth        — every crack has a bright edge, an offset dark shadow and a
+//                  blurred bloom (light scattering inside the fracture)
+//   growth       — the fracture front advances in stick–slip bursts; rings
+//                  follow; facets settle; chips fly toward the viewer
+//   refreeze     — on leave the cracks seal back into the impact point
 
 (() => {
   /* ─────────────────────────────────────────────────────────────────────────
-     One-time CSS injection (page-scoped: ice texture, cracks, dust, modal)
+     One-time CSS injection (page-scoped: ice material, fracture, fx, modal)
      ───────────────────────────────────────────────────────────────────────── */
   if (!document.getElementById('ak-interests-css')) {
     const s = document.createElement('style');
@@ -29,7 +44,8 @@
           var(--surface-raised);
         backdrop-filter: blur(var(--blur-sm));
         -webkit-backdrop-filter: blur(var(--blur-sm));
-        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12);
+        /* frosted rim: ice is whiter where it's thin, at the edges */
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), inset 0 0 28px var(--white-a06);
         transition: transform var(--dur-base) var(--ease-out),
                     border-color var(--dur-base) var(--ease-out),
                     box-shadow var(--dur-base) var(--ease-out);
@@ -47,56 +63,69 @@
       .ice-card:hover {
         transform: translateY(-4px);
         border-color: var(--border-strong);
-        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), var(--glow-halo-sm);
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), inset 0 0 28px var(--white-a06), var(--glow-halo-sm);
       }
       .ice-card--featured {
         border-color: var(--border-strong);
-        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), 0 0 0 1px var(--white-a08), var(--glow-halo-md);
+        box-shadow: var(--inset-hairline), inset 0 1px 0 var(--white-a12), inset 0 0 28px var(--white-a06), 0 0 0 1px var(--white-a08), var(--glow-halo-md);
       }
-      /* Layer 3 — static procedural veins (generated per card) */
-      .ice-card__veins {
-        position: absolute; inset: 0;
-        width: 100%; height: 100%;
-        z-index: 1;
-        pointer-events: none;
-        overflow: visible;
-        opacity: .5;
+      /* impact jolt — the individual translate property composes with the
+         hover transform instead of replacing it */
+      .ice-card--hit { animation: ice-hit .24s ease-out; }
+      @keyframes ice-hit {
+        0% { translate: 0 0; } 18% { translate: -2px 1px; } 40% { translate: 2px -1px; }
+        65% { translate: -1px 0; } 100% { translate: 0 0; }
+      }
+
+      /* Layer 3 — the ice itself: healed hairline veins + trapped air bubbles */
+      .ice-card__texture {
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        z-index: 1; pointer-events: none; overflow: visible;
         mix-blend-mode: screen;
       }
+      [data-theme="light"] .ice-card__texture { mix-blend-mode: multiply; }
+      .ice-vein { fill: none; stroke: var(--white-a18); stroke-linecap: round; }
+      .ice-bubble { fill: var(--white-a04); stroke: var(--white-a18); stroke-width: .5; }
+      .ice-bubble-hl { fill: var(--white-a30); }
+
+      /* Layer 4 — the fracture */
       .ice-card__crack {
-        position: absolute; inset: 0;
-        width: 100%; height: 100%;
-        pointer-events: none;
-        z-index: 5;
-        overflow: visible;
-        filter: drop-shadow(0 0 2px var(--glow-soft));
+        position: absolute; inset: 0; width: 100%; height: 100%;
+        pointer-events: none; z-index: 5; overflow: visible;
       }
-      .ice-card__dust {
-        position: absolute; inset: 0;
-        pointer-events: none;
-        overflow: hidden;
-        z-index: 6;
-      }
-      .ice-dust {
-        position: absolute; top: 0; left: 0;
-        background: var(--white-a30);
+      .ice-hi { fill: var(--white); opacity: .88; }
+      .ice-shadow { fill: var(--bg); opacity: .55; }
+      .ice-glow path { fill: none; stroke: var(--white); stroke-width: 2.6; stroke-linecap: round; opacity: .4; }
+      .ice-facet--lit { fill: var(--white); }
+      .ice-facet--dark { fill: var(--bg); }
+      .ice-crush { fill: var(--white); }
+      .ice-seal { fill: none; stroke: var(--white-a60); stroke-width: 1.5; }
+
+      .ice-card__body { position: relative; z-index: 6; display: flex; flex-direction: column; gap: 14px; height: 100%; }
+
+      /* Page-level fx layer: chips fly off the card toward the viewer, so they
+         must not be clipped by it */
+      #ice-fx { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+      .ice-chip {
+        position: absolute; left: 0; top: 0;
+        background: linear-gradient(135deg, var(--white-a60), var(--white-a12));
         will-change: transform, opacity;
       }
-      .ice-dust--round { border-radius: 50%; }
-      .ice-shard {
-        position: absolute; top: 0; left: 0;
-        background: var(--white-a60);
-        clip-path: polygon(50% 0, 100% 38%, 78% 100%, 22% 84%, 0 32%);
-        will-change: transform, opacity;
-      }
+      .ice-mote { position: absolute; left: 0; top: 0; border-radius: 50%; background: var(--white-a60); will-change: transform, opacity; }
       .ice-flash {
-        position: absolute; top: 0; left: 0;
-        border-radius: 50%;
+        position: absolute; left: 0; top: 0; border-radius: 50%;
         background: radial-gradient(circle, var(--white-a60), transparent 70%);
-        pointer-events: none;
         will-change: transform, opacity;
       }
-      .ice-card__body { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 14px; height: 100%; }
+      /* four-point glint where a fracture edge catches the light */
+      .ice-glint {
+        position: absolute; left: 0; top: 0; width: 16px; height: 16px; margin: -8px 0 0 -8px;
+        background:
+          linear-gradient(var(--white), var(--white)) center / 100% 1px no-repeat,
+          linear-gradient(var(--white), var(--white)) center / 1px 100% no-repeat;
+        filter: drop-shadow(0 0 3px var(--glow-strong));
+        opacity: 0;
+      }
 
       /* Skyridge modal */
       .sky-overlay {
@@ -131,6 +160,7 @@
 
       @media (prefers-reduced-motion: reduce) {
         .ice-card, .ice-card:hover { transform: none; }
+        .ice-card--hit { animation: none; }
         .sky-overlay, .sky-panel { transition: none; }
       }
     `;
@@ -167,176 +197,386 @@
   ];
 
   const rand = (a, b) => a + Math.random() * (b - a);
+  const irand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let uid = 0;
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Static ice veins — faint procedural lines across the card (drawn on mount)
+     Geometry helpers
      ───────────────────────────────────────────────────────────────────────── */
-  function genVeins(w, h) {
-    const out = [];
-    const lines = 6 + Math.floor(rand(0, 4));
-    for (let i = 0; i < lines; i++) {
-      let x = rand(0, w), y = rand(0, h), angle = rand(0, Math.PI * 2);
-      let d = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-      const segs = 3 + Math.floor(rand(0, 3));
-      const len = rand(w * 0.18, w * 0.5) / segs;
-      for (let s = 0; s < segs; s++) {
-        angle += rand(-0.45, 0.45);
-        x += Math.cos(angle) * len;
-        y += Math.sin(angle) * len;
-        d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+  const f1 = (v) => v.toFixed(1);
+  const toD = (pts) => 'M' + pts.map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L');
+
+  /* Midpoint displacement: a self-similar jagged line from a to b — each pass
+     splits every segment and pushes the midpoint sideways by ±rough·length. */
+  function jag(a, b, rough, depth) {
+    let pts = [a, b];
+    for (let d = 0; d < depth; d++) {
+      const next = [pts[0]];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+        const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+        const off = rand(-1, 1) * len * rough;
+        next.push([(x1 + x2) / 2 - ((y2 - y1) / len) * off, (y1 + y2) / 2 + ((x2 - x1) / len) * off], pts[i + 1]);
       }
-      out.push({ d, w: rand(0.4, 0.8).toFixed(2) });
+      pts = next;
     }
+    return pts;
+  }
+  /* coarse control points → jagged polyline */
+  function jagChain(coarse, rough, depth) {
+    let out = [coarse[0]];
+    for (let i = 0; i < coarse.length - 1; i++) out = out.concat(jag(coarse[i], coarse[i + 1], rough, depth).slice(1));
     return out;
   }
 
-  function drawVeins(svg, veins, w, h) {
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.innerHTML = veins.map((v) => (
-      `<path d="${v.d}" fill="none" stroke-width="${v.w}" stroke-linecap="round"
-         style="stroke:var(--white-a18)"/>`
-    )).join('');
+  /* Tapered ribbon along a polyline: width w0 at the start → w1 at the end,
+     with a little per-vertex jitter (a real crack opens unevenly). Filled
+     shape instead of a stroke, so tips end in a sharp point. */
+  function ribbon(pts, w0, w1) {
+    const n = pts.length;
+    const cum = [0];
+    for (let i = 1; i < n; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const total = cum[n - 1] || 1;
+    const L = [], R = [];
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+      let dx = b[0] - a[0], dy = b[1] - a[1];
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len; dy /= len;
+      const t = cum[i] / total;
+      const hw = ((w1 + (w0 - w1) * Math.pow(1 - t, 1.4)) / 2) * rand(0.7, 1.3);
+      L.push([pts[i][0] - dy * hw, pts[i][1] + dx * hw]);
+      R.push([pts[i][0] + dy * hw, pts[i][1] - dx * hw]);
+    }
+    return `${toD(L)}L${R.reverse().map(([x, y]) => `${f1(x)} ${f1(y)}`).join('L')}Z`;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Procedural crack generator v2 — dense branches + forks + tapering width.
-     Returns flat list of {d, width, delay}: one short path per segment so the
-     stroke tapers (thick at impact, thin at tips) and grows outward over time.
+     The ice before it breaks: healed hairline veins + trapped air bubbles
      ───────────────────────────────────────────────────────────────────────── */
-  function genCracks(ox, oy, w, h) {
-    const out = [];
-    const mains = 9 + Math.floor(rand(0, 5));   // 9..13 main cracks
-    const reach = Math.min(w, h) * 0.62;
+  function drawIceTexture(svg, w, h) {
+    const parts = [];
+    for (let i = irand(5, 8); i > 0; i--) {
+      let x = rand(0, w), y = rand(0, h), a = rand(0, Math.PI * 2);
+      const coarse = [[x, y]];
+      const segs = irand(3, 5), step = rand(w * 0.1, w * 0.22);
+      for (let k = 0; k < segs; k++) { a += rand(-0.5, 0.5); x += Math.cos(a) * step; y += Math.sin(a) * step; coarse.push([x, y]); }
+      const d = toD(jagChain(coarse, 0.18, 2));
+      const sw = rand(0.35, 0.8).toFixed(2);
+      parts.push(`<path class="ice-vein" d="${d}" stroke-width="${sw}" opacity="${rand(0.5, 1).toFixed(2)}"/>`);
+      /* a fainter twin a few px away — veins in real ice come in feathery sheets */
+      if (Math.random() < 0.5) parts.push(`<path class="ice-vein" d="${d}" stroke-width="${(sw * 0.6).toFixed(2)}" opacity=".35" transform="translate(${f1(rand(-3, 3))} ${f1(rand(2, 4))})"/>`);
+    }
+    /* bubbles: a few loose ones + one or two rising trails */
+    const bubble = (cx, cy, r) => {
+      parts.push(`<circle class="ice-bubble" cx="${f1(cx)}" cy="${f1(cy)}" r="${r.toFixed(2)}"/>`);
+      if (r > 1.2) parts.push(`<circle class="ice-bubble-hl" cx="${f1(cx - r * 0.35)}" cy="${f1(cy - r * 0.35)}" r="${(r * 0.3).toFixed(2)}"/>`);
+    };
+    for (let i = irand(5, 9); i > 0; i--) bubble(rand(0, w), rand(0, h), rand(0.6, 2.2));
+    for (let t = irand(1, 2); t > 0; t--) {
+      let x = rand(w * 0.1, w * 0.9), y = rand(h * 0.4, h * 0.95), r = rand(1.6, 2.6);
+      for (let k = irand(4, 7); k > 0; k--) { bubble(x, y, r); x += rand(-3, 3); y -= rand(5, 11); r *= rand(0.7, 0.9); }
+    }
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.innerHTML = parts.join('');
+  }
 
-    const grow = (x0, y0, angle0, segs, wStart, wEnd, delay0, dStep) => {
-      let x = x0, y = y0, angle = angle0;
-      const verts = [[x, y]];
-      const step = reach / segs;
-      for (let s = 0; s < segs; s++) {
-        angle += rand(-0.36, 0.36);
-        x += Math.cos(angle) * step * rand(0.7, 1.25);
-        y += Math.sin(angle) * step * rand(0.7, 1.25);
-        x = Math.max(2, Math.min(w - 2, x));
-        y = Math.max(2, Math.min(h - 2, y));
-        verts.push([x, y]);
+  /* ─────────────────────────────────────────────────────────────────────────
+     Fracture generator
+     ───────────────────────────────────────────────────────────────────────── */
+  function genFracture(P, w, h) {
+    const [px, py] = P;
+    const reach = Math.hypot(Math.max(px, w - px), Math.max(py, h - py));   // to the farthest corner
+    const N = irand(7, 11);
+    const slice = (Math.PI * 2) / N;
+    const rot = rand(0, Math.PI * 2);
+
+    /* radials: some run off the card, some stop short */
+    const radials = Array.from({ length: N }, (_, i) => {
+      const ang = rot + i * slice + rand(-0.28, 0.28) * slice;
+      const len = reach * (Math.random() < 0.5 ? rand(0.75, 1.15) : rand(0.3, 0.62));
+      const coarse = [P];
+      let a = ang, x = px, y = py;
+      const k = irand(4, 6);
+      for (let s = 0; s < k; s++) { a += rand(-0.2, 0.2); x += (Math.cos(a) * len) / k; y += (Math.sin(a) * len) / k; coarse.push([x, y]); }
+      return { ang, len, pts: jagChain(coarse, 0.15, 2) };
+    });
+    const pointAt = (rad, R) => rad.pts.find((p) => Math.hypot(p[0] - px, p[1] - py) >= R) || null;
+
+    /* rings: spider-web cracks between neighbouring radials, sagging inward */
+    const RADII = [0.13, 0.28, 0.5].map((f) => f * reach * rand(0.85, 1.15));
+    const CHANCE = [0.85, 0.68, 0.42];
+    const ringAt = RADII.map(() => ({}));
+    const rings = [];
+    RADII.forEach((R, k) => {
+      for (let i = 0; i < N; i++) {
+        if (Math.random() > CHANCE[k]) continue;
+        const pa = pointAt(radials[i], R * rand(0.92, 1.08));
+        const pb = pointAt(radials[(i + 1) % N], R * rand(0.92, 1.08));
+        if (!pa || !pb) continue;
+        const c = [px + ((pa[0] + pb[0]) / 2 - px) * 0.84, py + ((pa[1] + pb[1]) / 2 - py) * 0.84];
+        const q = [];
+        for (let s = 0; s <= 4; s++) {
+          const t = s / 4, u = 1 - t;
+          q.push([u * u * pa[0] + 2 * u * t * c[0] + t * t * pb[0], u * u * pa[1] + 2 * u * t * c[1] + t * t * pb[1]]);
+        }
+        const pts = jagChain(q, 0.2, 2);
+        ringAt[k][i] = pts;
+        rings.push(pts);
       }
-      // emit per-segment paths: tapering width + progressive delay (origin→out)
-      for (let k = 0; k < verts.length - 1; k++) {
-        const [ax, ay] = verts[k];
-        const [bx, by] = verts[k + 1];
-        const t = k / (verts.length - 1);
-        out.push({
-          d: `M ${ax.toFixed(1)} ${ay.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)}`,
-          width: (wStart + (wEnd - wStart) * t).toFixed(2),
-          delay: (delay0 + k * dStep).toFixed(3),
+    });
+
+    /* facets: cells bounded by two radials and two rings (or the impact) */
+    const facets = [];
+    for (let k = 0; k < RADII.length; k++) {
+      for (let i = 0; i < N; i++) {
+        const outer = ringAt[k][i];
+        const inner = k === 0 ? [P] : ringAt[k - 1][i];
+        if (!outer || !inner || Math.random() < 0.18) continue;
+        const r = Math.random();
+        facets.push({
+          d: `${toD(outer.concat(inner.slice().reverse()))}Z`,
+          tone: r < 0.6 ? 'lit' : 'dark',
+          a: r < 0.6 ? rand(0.03, 0.1) : rand(0.12, 0.3),
         });
       }
-      return verts;
-    };
-
-    for (let i = 0; i < mains; i++) {
-      const base = (i / mains) * Math.PI * 2 + rand(-0.3, 0.3);
-      const segs = 4 + Math.floor(rand(0, 3));
-      const bDelay = rand(0, 0.05);
-      const verts = grow(ox, oy, base, segs, 1.8, 0.35, bDelay, 0.035);
-      // 1–2 thinner, shorter forks from random vertices along the branch
-      const forks = 1 + Math.floor(rand(0, 2));
-      for (let f = 0; f < forks; f++) {
-        if (verts.length < 3) break;
-        const vi = 1 + Math.floor(rand(0, verts.length - 2));
-        const [fx, fy] = verts[vi];
-        grow(fx, fy, base + rand(-0.95, 0.95), 2 + Math.floor(rand(0, 2)),
-             0.85, 0.25, bDelay + vi * 0.035 + 0.04, 0.03);
-      }
     }
-    return out;
-  }
 
-  /* Draw cracks imperatively, animate stroke-dashoffset with per-segment delay */
-  function drawCracks(svg, segs, w, h) {
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.setAttribute('preserveAspectRatio', 'none');
-    svg.innerHTML = segs.map((s) => (
-      `<path d="${s.d}" pathLength="1" fill="none" stroke-width="${s.width}"
-         stroke-linecap="round" stroke-linejoin="round"
-         style="stroke:var(--white-a60);stroke-dasharray:1;stroke-dashoffset:1;opacity:1;
-                transition:stroke-dashoffset .26s var(--ease-out) ${s.delay}s, opacity .3s ease"/>`
-    )).join('');
-    void svg.getBoundingClientRect(); // force reflow so the transition runs
-    svg.querySelectorAll('path').forEach((p) => { p.style.strokeDashoffset = '0'; });
-  }
+    /* forks off the long radials */
+    const forks = [];
+    radials.forEach((rad) => {
+      if (rad.pts.length < 10 || Math.random() < 0.3) return;
+      const s = rad.pts[irand(3, rad.pts.length - 5)];
+      const a = rad.ang + (Math.random() < 0.5 ? -1 : 1) * rand(0.35, 0.85);
+      const l = rad.len * rand(0.14, 0.32);
+      forks.push(jag(s, [s[0] + Math.cos(a) * l, s[1] + Math.sin(a) * l], 0.2, 3));
+    });
 
-  function clearCracks(svg) {
-    if (!svg) return;
-    svg.querySelectorAll('path').forEach((p) => { p.style.opacity = '0'; p.style.strokeDashoffset = '1'; });
-    setTimeout(() => { if (svg) svg.innerHTML = ''; }, 320);
+    /* crush zone: pulverised ice + a halo of micro-cracks */
+    const micro = Array.from({ length: irand(10, 16) }, () => {
+      const a = rand(0, Math.PI * 2), r0 = rand(2, 6), l = rand(5, 17), a2 = a + rand(-0.45, 0.45);
+      const s = [px + Math.cos(a) * r0, py + Math.sin(a) * r0];
+      return jag(s, [s[0] + Math.cos(a2) * l, s[1] + Math.sin(a2) * l], 0.25, 2);
+    });
+    const crush = Array.from({ length: 12 }, (_, i) => {
+      const a = (i / 12) * Math.PI * 2, r = rand(3, 8.5);
+      return [px + Math.cos(a) * r, py + Math.sin(a) * r];
+    });
+
+    return { P, reach, radials, rings, facets, forks, micro, crush };
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Ice-dust burst v2 — impact flash + 28–36 particles (fine dust + shards),
-     radial velocity + gravity, shard rotation, 0.6–0.9s, fade in last 30%.
-     Single shared RAF loop for all particles (perf).
+     Render: two growth fronts (clip circles) reveal the cracks outward —
+     radials behind the fast front, rings behind a slower one
      ───────────────────────────────────────────────────────────────────────── */
-  function burstDust(layer, ox, oy) {
-    /* impact flash at origin */
-    const flash = document.createElement('div');
-    flash.className = 'ice-flash';
-    const FS = 72;
-    flash.style.width = flash.style.height = `${FS}px`;
-    layer.appendChild(flash);
-    const fStart = performance.now();
-    const fStep = (now) => {
-      const t = (now - fStart) / 190;
-      if (t >= 1 || !flash.isConnected) { flash.remove(); return; }
-      const sc = 0.2 + t * 1.1;
-      flash.style.transform = `translate(${(ox - FS / 2).toFixed(1)}px, ${(oy - FS / 2).toFixed(1)}px) scale(${sc.toFixed(2)})`;
-      flash.style.opacity = (0.6 * (1 - t)).toFixed(2);
-      requestAnimationFrame(fStep);
-    };
-    requestAnimationFrame(fStep);
+  function renderFracture(svg, F, w, h) {
+    const id = `ice${++uid}`;
+    const [px, py] = F.P;
+    const main = [
+      ...F.radials.map((r) => ribbon(r.pts, rand(2.2, 3.4), 0.2)),
+      ...F.forks.map((p) => ribbon(p, rand(0.9, 1.4), 0.15)),
+      ...F.micro.map((p) => ribbon(p, rand(0.6, 1), 0.12)),
+    ];
+    const rings = F.rings.map((p) => ribbon(p, rand(0.8, 1.3), 0.5));
+    const lines = [...F.radials.map((r) => r.pts), ...F.forks].map((p) => `<path d="${toD(p)}"/>`).join('');
+    const ringLines = F.rings.map((p) => `<path d="${toD(p)}"/>`).join('');
+    /* each crack gets its own brightness: faint hairlines next to open, glowing planes */
+    const fill = (list, cls, lo = 0.5) => list.map((d) => `<path class="${cls}" d="${d}" opacity="${rand(lo, 1).toFixed(2)}"/>`).join('');
 
-    /* particles */
-    const N = 28 + Math.floor(rand(0, 9)); // 28..36
-    const g = 0.08;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.innerHTML = `
+      <defs>
+        <clipPath id="${id}-f"><circle class="ice-front" cx="${f1(px)}" cy="${f1(py)}" r="0"/></clipPath>
+        <clipPath id="${id}-r"><circle class="ice-ringfront" cx="${f1(px)}" cy="${f1(py)}" r="0"/></clipPath>
+        <filter id="${id}-b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="2.4"/></filter>
+        <filter id="${id}-c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+      </defs>
+      <g class="ice-facets" opacity="0" clip-path="url(#${id}-r)">
+        ${F.facets.map((f) => `<path class="ice-facet--${f.tone}" d="${f.d}" opacity="${f.a.toFixed(3)}"/>`).join('')}
+      </g>
+      <g clip-path="url(#${id}-f)"><g class="ice-glow" opacity="0" filter="url(#${id}-b)">${lines}</g></g>
+      <g clip-path="url(#${id}-r)"><g class="ice-glow" opacity="0" filter="url(#${id}-b)">${ringLines}</g></g>
+      <g clip-path="url(#${id}-f)">
+        <g transform="translate(.8 1)">${fill(main, 'ice-shadow')}</g>
+        ${fill(main, 'ice-hi')}
+      </g>
+      <g clip-path="url(#${id}-r)">
+        <g transform="translate(.7 .9)">${fill(rings, 'ice-shadow')}</g>
+        ${fill(rings, 'ice-hi', 0.4)}
+      </g>
+      <g class="ice-crushzone" opacity="0">
+        <path class="ice-crush" d="${toD(F.crush)}Z" filter="url(#${id}-c)" opacity=".75"/>
+        <circle class="ice-crush" cx="${f1(px)}" cy="${f1(py)}" r="2.2"/>
+      </g>
+      <circle class="ice-seal" cx="${f1(px)}" cy="${f1(py)}" r="0" opacity="0" filter="url(#${id}-c)"/>
+    `;
+    gsap.set(svg, { opacity: 1 });
+  }
+
+  function clearFracture(svg) {
+    if (!svg) return;
+    svg.innerHTML = '';
+    gsap.set(svg, { clearProps: 'opacity' });
+  }
+
+  /* The break: stick–slip bursts of the fracture front, rings trailing it,
+     the bloom flaring then relaxing, facets settling into place. */
+  function playFracture(svg, F, instant) {
+    const $ = (s) => svg.querySelectorAll(s);
+    const m = F.reach * 1.1;
+    const [px, py] = F.P;
+    const front = $('.ice-front'), ringFront = $('.ice-ringfront');
+    if (instant) {
+      gsap.set([...front, ...ringFront], { attr: { r: m } });
+      gsap.set($('.ice-facets, .ice-glow, .ice-crushzone'), { opacity: 1 });
+      return gsap.from(svg, { opacity: 0, duration: 0.2 });
+    }
+    return gsap.timeline()
+      .fromTo($('.ice-crushzone'), { opacity: 0, scale: 0.3, svgOrigin: `${px} ${py}` },
+        { opacity: 1, scale: 1, duration: 0.09, ease: 'power3.out' }, 0)
+      .to(front, {
+        keyframes: [
+          { attr: { r: m * 0.2 }, duration: 0.05, ease: 'power4.out' },
+          { attr: { r: m * 0.24 }, duration: 0.07, ease: 'none' },     // stall
+          { attr: { r: m * 0.56 }, duration: 0.08, ease: 'power3.out' },
+          { attr: { r: m * 0.6 }, duration: 0.06, ease: 'none' },      // stall
+          { attr: { r: m }, duration: 0.24, ease: 'power2.out' },
+        ],
+      }, 0.02)
+      .to(ringFront, { attr: { r: m }, duration: 0.6, ease: 'power2.inOut' }, 0.12)
+      .to($('.ice-glow'), { opacity: 1, duration: 0.16 }, 0.03)
+      .to($('.ice-glow'), { opacity: 0.45, duration: 1.2, ease: 'power2.out' }, 0.32)
+      .to($('.ice-facets'), { opacity: 1, duration: 0.45, ease: 'power2.out' }, 0.3);
+  }
+
+  /* Refreeze: facets and bloom fade, then both fronts pull back into the
+     impact while a frost ring closes in behind them. */
+  function refreezeFracture(svg, F, onDone) {
+    const $ = (s) => svg.querySelectorAll(s);
+    const m = F.reach * 1.1;
+    return gsap.timeline({ onComplete: onDone })
+      .to($('.ice-facets'), { opacity: 0, duration: 0.3 }, 0)
+      .to($('.ice-glow'), { opacity: 0, duration: 0.4 }, 0)
+      .to($('.ice-ringfront'), { attr: { r: 0 }, duration: 0.5, ease: 'power2.in' }, 0)
+      .to($('.ice-front'), { attr: { r: 0 }, duration: 0.75, ease: 'power3.inOut' }, 0.08)
+      .fromTo($('.ice-seal'), { attr: { r: m * 0.8 }, opacity: 0 },
+        { attr: { r: 0 }, opacity: 0.55, duration: 0.75, ease: 'power3.inOut' }, 0.08)
+      .to($('.ice-seal'), { opacity: 0, duration: 0.2 }, 0.72)
+      .to($('.ice-crushzone'), { opacity: 0, duration: 0.3 }, 0.55);
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Shatter fx (page-level fixed layer, viewport coordinates)
+       chips  — flat shards that fly out AND toward the viewer (scale up),
+                tumbling in 3D; brightness follows the face angle (glint)
+       motes  — fine powder: slower, drags, drifts down, twinkles
+       glints — 4-point stars flaring on fracture edges
+     One RAF loop for all particles, time-based.
+     ───────────────────────────────────────────────────────────────────────── */
+  function fxLayer() {
+    let el = document.getElementById('ice-fx');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'ice-fx';
+      el.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  const CHIP_SHAPES = [
+    'polygon(50% 0, 100% 38%, 78% 100%, 22% 84%, 0 32%)',
+    'polygon(0 0, 100% 30%, 60% 100%)',
+    'polygon(20% 0, 100% 10%, 80% 100%, 0 70%)',
+    'polygon(50% 0, 100% 100%, 0 80%)',
+  ];
+
+  function shatter(cx, cy, glints) {
+    const layer = fxLayer();
+    const make = (cls) => { const el = document.createElement('div'); el.className = cls; layer.appendChild(el); return el; };
+
+    /* impact flash */
+    const flash = make('ice-flash');
+    gsap.fromTo(flash, { x: cx - 45, y: cy - 45, width: 90, height: 90, scale: 0.2, opacity: 0.7 },
+      { scale: 1.4, opacity: 0, duration: 0.22, ease: 'power2.out', onComplete: () => flash.remove() });
+
+    /* edge glints */
+    glints.forEach(([gx, gy], i) => {
+      const g = make('ice-glint');
+      gsap.timeline({ delay: 0.12 + i * 0.07 + rand(0, 0.08), onComplete: () => g.remove() })
+        .set(g, { x: gx, y: gy, rotation: rand(0, 45), scale: 0 })
+        .to(g, { scale: rand(0.8, 1.3), opacity: 1, duration: 0.12, ease: 'power2.out' })
+        .to(g, { scale: 0, opacity: 0, rotation: '+=40', duration: 0.3, ease: 'power2.in' });
+    });
+
     const parts = [];
-    for (let i = 0; i < N; i++) {
-      const shard = Math.random() < 0.3;
-      const el = document.createElement('div');
-      el.className = shard ? 'ice-shard' : 'ice-dust ice-dust--round';
-      const size = shard ? rand(3, 5) : rand(1, 2);
+    const t0 = performance.now();
+    for (let i = irand(9, 14); i > 0; i--) {
+      const el = make('ice-chip');
+      const size = rand(4, 9.5);
+      el.style.width = `${size.toFixed(1)}px`;
+      el.style.height = `${(size * rand(0.7, 1.3)).toFixed(1)}px`;
+      el.style.clipPath = CHIP_SHAPES[irand(0, CHIP_SHAPES.length - 1)];
+      const a = rand(0, Math.PI * 2), v = rand(140, 460);
+      parts.push({ el, chip: true, x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - rand(40, 160),
+        z: 0, vz: rand(80, 520), rx: rand(0, 360), ry: rand(0, 360), vrx: rand(-900, 900), vry: rand(-900, 900),
+        dur: rand(650, 1050), t0 });
+    }
+    for (let i = irand(22, 32); i > 0; i--) {
+      const el = make('ice-mote');
+      const size = rand(0.8, 2.2);
       el.style.width = el.style.height = `${size.toFixed(1)}px`;
-      layer.appendChild(el);
-
-      const ang = rand(0, Math.PI * 2);
-      const spd = shard ? rand(1.2, 3) : rand(1.8, 4.4);
-      parts.push({
-        el, x: ox, y: oy,
-        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
-        rot: rand(0, 360), vr: shard ? rand(-13, 13) : 0,
-        shard, dur: rand(600, 900), start: performance.now(),
-      });
+      const a = rand(0, Math.PI * 2), v = rand(30, 190);
+      parts.push({ el, chip: false, x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        tw: rand(8, 18), ph: rand(0, 6), dur: rand(900, 1600), t0 });
     }
 
+    let last = t0;
     const step = (now) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
       let alive = false;
       for (const p of parts) {
         if (!p.el) continue;
-        const t = now - p.start;
-        if (t >= p.dur || !p.el.isConnected) { p.el.remove(); p.el = null; continue; }
+        const life = (now - p.t0) / p.dur;
+        if (life >= 1 || !p.el.isConnected) { p.el.remove(); p.el = null; continue; }
         alive = true;
-        p.vy += g;
-        p.x += p.vx; p.y += p.vy;
-        p.rot += p.vr;
-        const lt = t / p.dur;
-        const op = lt < 0.7 ? 1 : 1 - (lt - 0.7) / 0.3; // fade in last 30%
-        p.el.style.transform = `translate(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px)`
-          + (p.shard ? ` rotate(${p.rot.toFixed(0)}deg)` : '');
-        p.el.style.opacity = op.toFixed(2);
+        const fade = life < 0.6 ? 1 : 1 - (life - 0.6) / 0.4;
+        if (p.chip) {
+          p.vy += 900 * dt;                       // gravity
+          p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+          p.rx += p.vrx * dt; p.ry += p.vry * dt;
+          const s = 1 + p.z / 420;                // toward the viewer → bigger
+          const glint = 0.35 + 0.65 * Math.abs(Math.cos((p.ry * Math.PI) / 180));
+          p.el.style.transform = `translate3d(${f1(p.x)}px, ${f1(p.y)}px, 0) scale(${s.toFixed(2)}) rotateX(${p.rx.toFixed(0)}deg) rotateY(${p.ry.toFixed(0)}deg)`;
+          p.el.style.opacity = (fade * glint).toFixed(2);
+        } else {
+          const drag = Math.pow(0.12, dt);        // powder loses speed fast
+          p.vx *= drag; p.vy = p.vy * drag + 160 * dt;
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          const twinkle = 0.55 + 0.45 * Math.sin(p.ph + (now / 1000) * p.tw);
+          p.el.style.transform = `translate3d(${f1(p.x)}px, ${f1(p.y)}px, 0)`;
+          p.el.style.opacity = (fade * twinkle).toFixed(2);
+        }
       }
       if (alive) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
+  }
+
+  /* a few points along the fracture where light will flare (viewport coords) */
+  function glintPoints(F, rect) {
+    const out = [];
+    const pool = F.radials.filter((r) => r.pts.length > 6);
+    for (let i = Math.min(irand(3, 5), pool.length); i > 0; i--) {
+      const r = pool.splice(irand(0, pool.length - 1), 1)[0];
+      const p = r.pts[Math.floor(r.pts.length * rand(0.25, 0.7))];
+      if (p[0] > 4 && p[1] > 4 && p[0] < rect.width - 4 && p[1] < rect.height - 4) out.push([rect.left + p[0], rect.top + p[1]]);
+    }
+    return out;
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
@@ -344,71 +584,105 @@
      ───────────────────────────────────────────────────────────────────────── */
   function IceCard({ icon, title, desc, featured, onOpen }) {
     const cardRef = React.useRef(null);
-    const veinsRef = React.useRef(null);
-    const svgRef  = React.useRef(null);
-    const dustRef = React.useRef(null);
-    const activeRef = React.useRef(false);
-    const resetTimer = React.useRef(null);
+    const textureRef = React.useRef(null);
+    const svgRef = React.useRef(null);
+    const st = React.useRef({ active: false, F: null, tl: null, timer: null });
 
-    /* Draw static ice veins once the card has real dimensions */
+    /* draw the unbroken ice once the card has real dimensions */
     React.useEffect(() => {
       const raf = requestAnimationFrame(() => {
-        const card = cardRef.current, vsvg = veinsRef.current;
-        if (!card || !vsvg) return;
+        const card = cardRef.current;
+        if (!card || !textureRef.current) return;
         const r = card.getBoundingClientRect();
-        if (r.width && r.height) drawVeins(vsvg, genVeins(r.width, r.height), r.width, r.height);
+        if (r.width && r.height) drawIceTexture(textureRef.current, r.width, r.height);
       });
       return () => cancelAnimationFrame(raf);
     }, []);
 
     const trigger = React.useCallback((clientX, clientY) => {
-      const card = cardRef.current;
-      if (!card || activeRef.current) return;
-      activeRef.current = true;
-
+      const card = cardRef.current, s = st.current;
+      if (!card || s.active) return;
+      s.active = true;
+      if (s.tl) s.tl.kill();
       const r = card.getBoundingClientRect();
-      const ox = clientX != null ? clientX - r.left : r.width / 2;
-      const oy = clientY != null ? clientY - r.top  : r.height / 2;
-
-      const paths = genCracks(ox, oy, r.width, r.height);
-      drawCracks(svgRef.current, paths, r.width, r.height);
-      burstDust(dustRef.current, ox, oy);
+      const P = [
+        clientX != null ? clientX - r.left : r.width / 2,
+        clientY != null ? clientY - r.top : r.height / 2,
+      ];
+      const F = genFracture(P, r.width, r.height);
+      s.F = F;
+      renderFracture(svgRef.current, F, r.width, r.height);
+      const instant = reducedMotion();
+      s.tl = playFracture(svgRef.current, F, instant);
+      if (!instant) {
+        shatter(r.left + P[0], r.top + P[1], glintPoints(F, r));
+        card.classList.remove('ice-card--hit');
+        void card.offsetWidth;                    // restart the jolt
+        card.classList.add('ice-card--hit');
+      }
     }, []);
 
     const reset = React.useCallback(() => {
-      activeRef.current = false;
-      clearCracks(svgRef.current);
+      const s = st.current, svg = svgRef.current;
+      if (!s.active) return;
+      s.active = false;
+      if (s.tl) s.tl.kill();
+      if (!s.F) return;
+      s.tl = reducedMotion()
+        ? gsap.to(svg, { opacity: 0, duration: 0.2, onComplete: () => clearFracture(svg) })
+        : refreezeFracture(svg, s.F, () => clearFracture(svg));
     }, []);
 
+    /* ice glints under the pointer before (and while) it breaks */
+    const onPointerMove = (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const card = cardRef.current, r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${(((e.clientX - r.left) / r.width) * 100).toFixed(1)}%`);
+      card.style.setProperty('--my', `${(((e.clientY - r.top) / r.height) * 100).toFixed(1)}%`);
+      card.style.setProperty('--spot', '1');
+    };
     const onPointerEnter = (e) => { if (e.pointerType === 'mouse') trigger(e.clientX, e.clientY); };
-    const onPointerLeave = (e) => { if (e.pointerType === 'mouse') reset(); };
-    const onPointerDown  = (e) => {
+    const onPointerLeave = (e) => {
+      if (e.pointerType !== 'mouse') return;
+      cardRef.current.style.setProperty('--spot', '0');
+      reset();
+    };
+    const onPointerDown = (e) => {
       if (e.pointerType !== 'mouse') {
-        // touch / pen: fire on tap, auto-reset after a beat
+        /* touch / pen: break on tap, refreeze after a beat */
         trigger(e.clientX, e.clientY);
-        clearTimeout(resetTimer.current);
-        resetTimer.current = setTimeout(reset, 1400);
+        clearTimeout(st.current.timer);
+        st.current.timer = setTimeout(reset, 1600);
       }
     };
     const onClick = () => { if (featured && onOpen) onOpen(); };
 
-    React.useEffect(() => () => clearTimeout(resetTimer.current), []);
+    React.useEffect(() => () => {
+      const s = st.current;
+      clearTimeout(s.timer);
+      if (s.tl) s.tl.kill();
+    }, []);
 
     return (
       <div
         ref={cardRef}
         className={`ice-card${featured ? ' ice-card--featured' : ''}`}
         onPointerEnter={onPointerEnter}
+        onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
         onPointerDown={onPointerDown}
+        onAnimationEnd={(e) => { if (e.animationName === 'ice-hit') e.currentTarget.classList.remove('ice-card--hit'); }}
         onClick={onClick}
         role={featured ? 'button' : undefined}
         tabIndex={featured ? 0 : undefined}
+        data-cursor={featured ? 'lock' : undefined}
+        data-cursor-label={featured ? 'Join Skyridge ↗' : undefined}
         onKeyDown={featured ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } } : undefined}
       >
-        <svg ref={veinsRef} className="ice-card__veins" aria-hidden="true" />
+        <div className="ak-light-spot" style={{ zIndex: 1 }} aria-hidden="true" />
+        <svg ref={textureRef} className="ice-card__texture" aria-hidden="true" />
         <svg ref={svgRef} className="ice-card__crack" aria-hidden="true" />
-        <div ref={dustRef} className="ice-card__dust" aria-hidden="true" />
+        <div className="ak-light-edge" style={{ zIndex: 7 }} aria-hidden="true" />
 
         <div className="ice-card__body">
           <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><IceIcon file={icon} /></span>
@@ -571,6 +845,9 @@
     const [open, setOpen] = React.useState(false);
     const openModal  = React.useCallback(() => setOpen(true), []);
     const closeModal = React.useCallback(() => setOpen(false), []);
+
+    /* the shatter fx layer lives on <body>; drop it when leaving the route */
+    React.useEffect(() => () => { const fx = document.getElementById('ice-fx'); if (fx) fx.remove(); }, []);
 
     return (
       <main id="home" className="ak-grid-bg" style={{ minHeight: '100vh', paddingTop: 120 }}>

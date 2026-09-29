@@ -240,6 +240,7 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Draggable.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/InertiaPlugin.min.js" crossorigin="anonymous"></script>
 <script src="/ui_kits/portfolio/akMotion.js"></script>
+<script src="/ui_kits/portfolio/landmask.js"></script>
 
 <!-- All components load once into this single shell (SPA) — absolute paths so
      they resolve correctly even when the shell is served for /interests -->
@@ -255,7 +256,6 @@
 <script type="text/babel" src="/ui_kits/portfolio/Heartbeat.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Contact.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/CustomCursor.jsx"></script>
-<script type="text/babel" src="/ui_kits/portfolio/LedgerBackground.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/CommandTerminal.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/DecryptHeadings.jsx"></script>
 <script type="text/babel" src="/interests/InterestsPage.jsx"></script>
@@ -407,8 +407,6 @@ function App() {
         /* Stack's pin was measured under the intro's scroll lock — re-measure */
         requestAnimationFrame(() => ScrollTrigger.refresh());
       }} />}
-      {/* Mounted before the routes so section content (equal z) paints above it */}
-      <LedgerBackground />
       <CustomCursor />
       <CommandTerminal />
       <DecryptHeadings />

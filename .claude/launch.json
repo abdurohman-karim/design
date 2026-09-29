@@ -6,6 +6,15 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4173"],
       "port": 4173
+    },
+    {
+      "name": "site-2020",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-c",
+        "import http.server, os\nclass H(http.server.SimpleHTTPRequestHandler):\n    # SPA fallback like netlify.toml: route paths (/interests/) get index.html,\n    # real files and missing assets (with an extension) behave normally\n    def send_head(self):\n        p = self.translate_path(self.path)\n        route = not os.path.splitext(self.path.split('?')[0])[1]\n        if route and not os.path.isfile(p) and not os.path.isfile(os.path.join(p, 'index.html')):\n            self.path = '/index.html'\n        return super().send_head()\n    def end_headers(self):\n        self.send_header('Cache-Control', 'no-store')\n        super().end_headers()\nhttp.server.ThreadingHTTPServer(('', 2020), H).serve_forever()\n"
+      ],
+      "port": 2020
     }
   ]
 }

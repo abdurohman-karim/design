@@ -62,7 +62,7 @@ This system was synthesized from the developer's existing portfolio — **GitHub
 
 The original portfolio used cyan/purple/orange accents and Poppins; this system re-skins it to **strict monochrome / web3 minimalism** per the project brief, keeping the structural and typographic DNA.
 
-**Known naming inconsistency:** the live header/preloader/favicon all use the **`sY` monogram** and **`syneTra`** wordmark (`Header.jsx`), while the `Contact.jsx` footer and `guidelines/brand-logo.card.html` still show the earlier **`aK` / `abdurohmanKarim`** mark. Both exist in the codebase today — pick one and reconcile before shipping further brand touchpoints.
+**Known naming inconsistency:** the live header/preloader/favicon all use the **`sY` monogram** and **`syneTra`** wordmark (`Header.jsx`), and so does the `Contact.jsx` footer; only `guidelines/brand-logo.card.html` still shows the earlier **`aK` / `abdurohmanKarim`** mark — reconcile it before shipping further brand touchpoints.
 
 ---
 
@@ -151,11 +151,11 @@ For UI and social needs not covered by either set, the `Icon` component (`compon
 
 **Pages (`ui_kits/portfolio/` + `interests/`):**
 - `Header.jsx` — fixed nav, glass-on-scroll, `sY`/`syneTra` logo, theme toggle, mobile drawer
-- `Hero.jsx`, `About.jsx`, `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (`git ls-remote`: live GitHub API → stats, a `git log --graph` of every repo as a branch off main, and a filterable terminal listing; cached 10 min in sessionStorage), `Contact.jsx` (form → Telegram)
+- `Hero.jsx` (name with a variable-weight proximity effect; a dotted, lit monochrome globe — Natural Earth land mask in `landmask.js` — turning slowly, drag to spin; entrance after the preloader/intro, dissolves on scroll), `About.jsx` (scroll-lit statement, `whoami --json` card with live Fergana time, odometer stats, and a request-flow diagram whose packet walks each engineering principle), `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (`git ls-remote`: live GitHub API → stats, a `git log --graph` of every repo as a branch off main, and a filterable terminal listing; cached 10 min in sessionStorage), `Contact.jsx` (the form is a `POST /api/contact` composer with a live JSON preview and a streamed 200/422/502 response → Telegram; availability + channels with copy-email; footer with heartbeat and back-to-top)
 - `CustomCursor.jsx` — cursor overlay; components opt in with `data-cursor="lock|drag|frame"` + `data-cursor-label`
 - `akMotion.js` — shared helpers: decrypt `scramble()` and the `.ak-light-spot` / `.ak-light-edge` cursor-light layers
 - `DecryptBtn.jsx` — shared scramble/decrypt CTA button (works as a React component or auto-init'd on any `.decrypt-btn` element)
-- `interests/InterestsPage.jsx` — "Mountains & Ice" page: procedural ice-crack cards + Skyridge join-form modal
+- `interests/InterestsPage.jsx` — "Mountains & Ice" page: ice cards (veins, trapped air bubbles, cursor glint) that fracture like real ice under the pointer — jagged radial + spider-web ring cracks, tilted facets, crush zone, stick–slip growth, chips flying toward the viewer — and refreeze on leave; + Skyridge join-form modal
 
 **Backend:**
 - `netlify/functions/telegram-notify.js` — the one server-side function (Contact + Skyridge → Telegram)

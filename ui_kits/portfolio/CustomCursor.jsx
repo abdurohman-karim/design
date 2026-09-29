@@ -115,7 +115,7 @@
 
       const pos  = { x: -200, y: -200 };
       const prev = { x: -200, y: -200, t: performance.now() };
-      let speed = 0, angle = 0;
+      let speed = 0, angle = 0, rot = 0;   // rot: the ring's displayed (smoothed) angle
       let mode = 'default', target = null, visible = false, pressed = false;
 
       /* ── state changes (shape, label, brackets) ── */
@@ -206,6 +206,7 @@
           ringW(r.width + FRAME_PAD * 2);
           ringH(r.height + FRAME_PAD * 2);
           ringRot(0); ringSX(pressed ? 0.94 : 1); ringSY(pressed ? 0.94 : 1);
+          rot = 0;
         } else if (mode === 'lock' && target) {
           const r = target.getBoundingClientRect();
           const pad = pressed ? 4 : LOCK_PAD;
@@ -218,14 +219,30 @@
           cornerTo[1].x(R); cornerTo[1].y(T);
           cornerTo[2].x(R); cornerTo[2].y(B);
           cornerTo[3].x(L); cornerTo[3].y(B);
+          /* the hidden ring already shrinks back to a plain circle, so it
+             doesn't reappear at the size of whatever it framed before */
           ringX(pos.x); ringY(pos.y);
+          ringW(RING); ringH(RING);
+          ringRot(0); ringSX(1); ringSY(1);
+          rot = 0;
         } else {
           const size = mode === 'drag' ? 104 : RING;   // drag: a wide lens around the pill
           ringX(pos.x); ringY(pos.y);
           ringW(size); ringH(size);
-          /* stretch along the direction of travel (default state only) */
-          const k = mode === 'default' && !reduced ? Math.min(speed / 2600, 0.32) : 0;
-          ringRot(angle);
+          /* Stretch along the direction of travel — but only once the ring is a
+             circle again. While it is still shrinking out of a wide frame,
+             rotating it would stand that frame on its end (a tall bar when
+             leaving a row vertically), so it stays level until it's round. */
+          const w = gsap.getProperty(ring, 'width'), h = gsap.getProperty(ring, 'height');
+          const round = Math.abs(w - size) < 4 && Math.abs(h - size) < 4;
+          const k = mode === 'default' && !reduced && round ? Math.min(speed / 2600, 0.32) : 0;
+          if (round) {
+            const d = ((angle - rot + 540) % 360) - 180;   // shortest way round
+            rot += d * 0.35;
+          } else {
+            rot = 0;
+          }
+          ringRot(rot);
           const press = pressed ? 0.82 : 1;
           ringSX((1 + k) * press); ringSY((1 - k * 0.55) * press);
         }
