@@ -70,21 +70,19 @@
     const [route, setRoute] = React.useState(() => routeOf(window.location.pathname));
     const pendingScroll = React.useRef(null);
 
-    /* Intro TV plays on the first visit and then again only after a cool-down
-       (a fresh session hours later — not on every reload). The timestamp lives
-       in localStorage; if storage is unavailable the intro simply plays.
-       Skipped entirely when the user prefers reduced motion. */
-    const INTRO_KEY = 'ak-intro-seen-at';
-    const INTRO_COOLDOWN_MS = 6 * 60 * 60 * 1000;
-    const [introFinished, setIntroFinished] = React.useState(() => {
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
-      try {
-        const seenAt = Number(localStorage.getItem(INTRO_KEY));
-        return seenAt > 0 && Date.now() - seenAt < INTRO_COOLDOWN_MS;
-      } catch (e) { return false; }
-    });
-    const markIntroSeen = () => {
-      try { localStorage.setItem(INTRO_KEY, String(Date.now())); } catch (e) {}
+    /* The intro TV film plays on demand: the hero's "Get in touch" fires
+       `ak:intro` (see Hero.jsx); `?intro` in the URL plays it on load (demos,
+       screen recordings). The page stays where it was once the film ends. */
+    const [intro, setIntro] = React.useState(() => new URLSearchParams(window.location.search).has('intro'));
+    React.useEffect(() => {
+      const play = () => setIntro(true);
+      window.addEventListener('ak:intro', play);
+      return () => window.removeEventListener('ak:intro', play);
+    }, []);
+    const endIntro = () => {
+      setIntro(false);
+      /* Stack's pin was measured under the intro's scroll lock — re-measure */
+      requestAnimationFrame(() => ScrollTrigger.refresh());
     };
 
     /* App is mounted and painted — dismiss the preloader */
@@ -143,12 +141,7 @@
     return (
       <>
         {/* Additive intro overlay — above everything, before the main content */}
-        {!introFinished && <IntroTV onFinish={() => {
-          markIntroSeen();
-          setIntroFinished(true);
-          /* Stack's pin was measured under the intro's scroll lock — re-measure */
-          requestAnimationFrame(() => ScrollTrigger.refresh());
-        }} />}
+        {intro && <IntroTV onFinish={endIntro} />}
         <CustomCursor />
         <CommandTerminal />
         <DecryptHeadings />

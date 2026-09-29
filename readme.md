@@ -37,7 +37,7 @@ src/
     Heartbeat.jsx          live "API 200 · 41ms" status (footer)
   layout/                  app-wide layers
     Header.jsx             nav, theme toggle, mobile drawer
-    IntroTV.jsx            CRT intro (first visit, then every 6 h)
+    IntroTV.jsx            CRT TV film, played by the hero's "Get in touch" (?intro plays it on load)
     CustomCursor.jsx       dot + ring; data-cursor="lock | drag | frame" + data-cursor-label
     CommandTerminal.jsx    Cmd/Ctrl+K terminal
     DecryptHeadings.jsx    scrambles section code-headers into view
@@ -175,4 +175,6 @@ A second, page-specific set lives in `assets/icons/interests/` (`ice-axe`, `cram
 
 ## Intro TV sound
 
-`assets/audio/tv-intro.mp3` is one pre-mixed clip for the whole ~3.8 s intro (power-on flash 0.30 s → logo + static 0.80 s → spark ~1.88 s → smoke ~2.15 s → power-off 2.85 s → fade-out ~3.4–3.8 s). Path, start offset and volume live in `AK_TV_AUDIO` at the top of `src/layout/IntroTV.jsx`. The sound stops on skip and when the intro ends; a missing file just stays silent. Browsers block autoplay until the visitor has interacted with the page, so on a hard reload it may be muted — expected, not a bug.
+The hero's **Get in touch** plays a ~14.7 s film, every click (the button fires `ak:intro`, `src/app.jsx` mounts the film; the page stays where it was afterwards). It runs on one GSAP timeline; its clock is `AK_T` at the top of `src/layout/IntroTV.jsx`: power-on flash 0.30 s → logo + static 0.80 s → camera dolly-in 1.45 s → screen fills the frame 3.70 s → through the glass, reel inside the screen 4.45 / 6.30 / 8.20 s → pull-out 10.0–11.9 s → short-circuit pops 12.25 / 12.65 / 13.05 s → collapse 13.2 s → fade-out 14.1–14.7 s. Add `?intro` to the URL to play it on load (demos, screen recordings). Any key or click skips it.
+
+`assets/audio/tv-intro.mp3` is played as cues along that timeline (`AK_TV_AUDIO.cues`: when on the timeline, where in the clip, how long). The current 2.8 s clip is cut in two — its power-on thump + hum opens the film, its crackle returns for the short circuit; the reel in between is silent. For a full soundtrack, mix one clip to the timeline above and set `cues: [[0, 0, AK_T.end]]`. The sound stops on skip and when the intro ends; a missing file just stays silent. Started from the button click the sound plays; with `?intro` on a hard reload the browser's autoplay policy may mute it — expected, not a bug.

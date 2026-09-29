@@ -379,8 +379,13 @@
       && !document.querySelector('.ak-introtv') && !document.body.classList.contains('ak-intro-lock');
     if (clear()) { cb(); return () => {}; }
     const id = setInterval(() => { if (clear()) { clearInterval(id); clearTimeout(safety); cb(); } }, 120);
-    const safety = setTimeout(() => { clearInterval(id); cb(); }, 9000);
+    const safety = setTimeout(() => { clearInterval(id); cb(); }, 24000);   // ?intro plays the ~15 s film on load
     return () => { clearInterval(id); clearTimeout(safety); };
+  }
+
+  /* "Get in touch" plays the intro TV film (App listens for `ak:intro`) */
+  function playIntro() {
+    window.dispatchEvent(new CustomEvent('ak:intro'));
   }
 
   function Hero() {
@@ -468,7 +473,7 @@
               high-load backends in PHP / Laravel and Python.
             </p>
             <div className="ak-hero-cta">
-              <DecryptBtn variant="primary" size="lg" arrow as="a" href="#contact">Get in touch</DecryptBtn>
+              <DecryptBtn variant="primary" size="lg" arrow type="button" onClick={playIntro}>Get in touch</DecryptBtn>
               <DecryptBtn variant="secondary" size="lg" as="a" href="#projects">View projects</DecryptBtn>
             </div>
             <div className="ak-hero-meta">
