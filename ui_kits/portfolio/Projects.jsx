@@ -52,7 +52,7 @@
       stack: ['Python', 'aiogram', 'PostgreSQL', 'Redis'],
     },
     {
-      title: 'Video Downloader Bot', size: 'md', preview: 'downloader',
+      title: 'Downloader', size: 'md', preview: 'downloader',
       kind: 'Telegram bot · aiogram 3 / yt-dlp',
       href: 'https://t.me/keepdownload_bot',
       description: 'High-throughput Telegram bot that downloads Instagram / TikTok video with quality selection.',
