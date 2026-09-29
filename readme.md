@@ -151,7 +151,7 @@ For UI and social needs not covered by either set, the `Icon` component (`compon
 
 **Pages (`ui_kits/portfolio/` + `interests/`):**
 - `Header.jsx` — fixed nav, glass-on-scroll, `sY`/`syneTra` logo, theme toggle, mobile drawer
-- `Hero.jsx`, `About.jsx`, `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (live GitHub API), `Contact.jsx` (form → Telegram)
+- `Hero.jsx`, `About.jsx`, `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (`git ls-remote`: live GitHub API → stats, a `git log --graph` of every repo as a branch off main, and a filterable terminal listing; cached 10 min in sessionStorage), `Contact.jsx` (form → Telegram)
 - `CustomCursor.jsx` — cursor overlay; components opt in with `data-cursor="lock|drag|frame"` + `data-cursor-label`
 - `akMotion.js` — shared helpers: decrypt `scramble()` and the `.ak-light-spot` / `.ak-light-edge` cursor-light layers
 - `DecryptBtn.jsx` — shared scramble/decrypt CTA button (works as a React component or auto-init'd on any `.decrypt-btn` element)
