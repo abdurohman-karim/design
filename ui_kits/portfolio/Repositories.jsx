@@ -28,6 +28,7 @@ function RepoCard({ name, description, language, stargazers_count, html_url }) {
   return (
     <a
       href={html_url} target="_blank" rel="noopener noreferrer"
+      data-cursor="lock" data-cursor-label="GitHub ↗"
       style={{ textDecoration: 'none', display: 'block', height: '100%' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

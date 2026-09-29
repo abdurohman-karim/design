@@ -14,10 +14,10 @@ The whole site is one HTML shell (`index.html`) that loads React + Babel-standal
 
 A tiny client-side router (History API, no library) in `index.html` switches between two routes based on `pathname`:
 
-- **`/`** — `HomeRoute`: `Header → Hero → About → Stack → Projects → Repositories → Contact`, each section (`ui_kits/portfolio/*.jsx`) scroll-spied and revealed via `IntersectionObserver`. `Stack.jsx` drives a GSAP/ScrollTrigger card-deck.
+- **`/`** — `HomeRoute`: `Header → Hero → About → Stack → Projects → Repositories → Contact`, each section (`ui_kits/portfolio/*.jsx`) scroll-spied and revealed via `IntersectionObserver`. `Stack.jsx` drives a pinned GSAP "orbit": skill cards on a 3D arc turned by scroll, drag/flick (Draggable + Inertia), ←/→ or the tab row; a swipe carousel on phones and a static grid under reduced motion.
 - **`/interests`** — `InterestsRoute`: `Header → InterestsPage` (`interests/InterestsPage.jsx`), a "Mountains & Ice" page — six procedurally-cracking ice cards (canvas-free, pure SVG path generation + CSS) covering mountaineering/climbing, plus a **Skyridge** club card that opens a join-request modal.
 
-Shared across both routes: `CustomCursor.jsx` (magnetic frame cursor, desktop only), `Header.jsx` (fixed nav, glass-on-scroll, monogram logo, theme toggle, mobile drawer), `DecryptBtn.jsx` (the cyberpunk scramble/decrypt CTA button used everywhere a primary action appears).
+Shared across both routes: `CustomCursor.jsx` (dot + trailing ring with context states — frame around controls, corner-bracket "lock" on cards, drag lens, I-beam; desktop only), `Header.jsx` (fixed nav, glass-on-scroll, monogram logo, theme toggle, mobile drawer), `DecryptBtn.jsx` (the cyberpunk scramble/decrypt CTA button used everywhere a primary action appears).
 
 An inline preloader (`#ak-preloader` in `index.html`, no React dependency) paints instantly, drives a fake progress bar while the CDN scripts load, and calls `window.__akReady()` once `<App>` has mounted and painted — with an 8s safety timeout so a slow/failed script never traps the user.
 
@@ -97,7 +97,7 @@ See `tokens/typography.css`.
 
 **Shadows & glow.** Two systems: **black depth shadows** (`--shadow-sm…xl`) for elevation, and **white glow** (`--glow-halo-*`, `--glow-text`) for focus/hover/accent. Glow never has hue.
 
-**Motion.** Smooth and quiet. `--ease-out` (`cubic-bezier(.16,1,.3,1)`), 160–500ms. Scroll-triggered fade-ups (opacity + 28px translate) via IntersectionObserver; smooth-scroll nav; subtle parallax glow. No bounce, no infinite loops on content. All gated on `prefers-reduced-motion`.
+**Motion.** Smooth and quiet. `--ease-out` (`cubic-bezier(.16,1,.3,1)`), 160–500ms. Scroll-triggered fade-ups (opacity + 28px translate) via IntersectionObserver; smooth-scroll nav; subtle parallax glow. No bounce, no infinite loops on content — the one exception is the Projects system previews, which loop only while their card is on screen. All gated on `prefers-reduced-motion`.
 
 **Interaction states.** *Hover:* white border + white glow + slight lift; text muted→white; arrows nudge 2–3px. *Focus:* white underline/border + glow halo — form fields have `appearance: none` + an autofill override (`tokens/base.css`) so Safari/Chrome native chrome never bleeds through the custom underline. *Press:* (buttons) translateY back to 0. No color shifts — only luminance.
 
@@ -151,8 +151,9 @@ For UI and social needs not covered by either set, the `Icon` component (`compon
 
 **Pages (`ui_kits/portfolio/` + `interests/`):**
 - `Header.jsx` — fixed nav, glass-on-scroll, `sY`/`syneTra` logo, theme toggle, mobile drawer
-- `Hero.jsx`, `About.jsx`, `Stack.jsx` (GSAP card deck), `Projects.jsx`, `Repositories.jsx` (live GitHub API), `Contact.jsx` (form → Telegram)
-- `CustomCursor.jsx` — magnetic frame cursor overlay
+- `Hero.jsx`, `About.jsx`, `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (live GitHub API), `Contact.jsx` (form → Telegram)
+- `CustomCursor.jsx` — cursor overlay; components opt in with `data-cursor="lock|drag|frame"` + `data-cursor-label`
+- `akMotion.js` — shared helpers: decrypt `scramble()` and the `.ak-light-spot` / `.ak-light-edge` cursor-light layers
 - `DecryptBtn.jsx` — shared scramble/decrypt CTA button (works as a React component or auto-init'd on any `.decrypt-btn` element)
 - `interests/InterestsPage.jsx` — "Mountains & Ice" page: procedural ice-crack cards + Skyridge join-form modal
 

@@ -234,9 +234,12 @@
 <!-- Sends Contact / Skyridge-join form submissions to the Telegram notify function -->
 <script src="/assets/js/notify.js"></script>
 
-<!-- GSAP + ScrollTrigger (used by Stack.jsx card-deck animation) -->
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" crossorigin="anonymous"></script>
+<!-- GSAP + ScrollTrigger / Draggable / Inertia (Stack.jsx 3D orbit) -->
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Draggable.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/InertiaPlugin.min.js" crossorigin="anonymous"></script>
+<script src="/ui_kits/portfolio/akMotion.js"></script>
 
 <!-- All components load once into this single shell (SPA) — absolute paths so
      they resolve correctly even when the shell is served for /interests -->
@@ -246,6 +249,7 @@
 <script type="text/babel" src="/ui_kits/portfolio/Hero.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/About.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Stack.jsx"></script>
+<script type="text/babel" src="/ui_kits/portfolio/ProjectPreviews.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Projects.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Repositories.jsx"></script>
 <script type="text/babel" src="/ui_kits/portfolio/Heartbeat.jsx"></script>
@@ -257,7 +261,7 @@
 <script type="text/babel" src="/interests/InterestsPage.jsx"></script>
 
 <script type="text/babel">
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, Draggable, InertiaPlugin);
 
 /* Normalise any path to one of two routes */
 const routeOf = (p) => (p.startsWith('/interests') ? '/interests/' : '/');
