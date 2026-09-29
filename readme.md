@@ -1,38 +1,81 @@
-# Abdurohman Karim — Portfolio Design System
+# Abdurohman Karim — portfolio (synetra.art)
 
-A strict-monochrome design system **and its live implementation** for the personal portfolio of **Abdurohman Karim**, a backend / full-stack developer in **fintech and payment systems** (PHP/Laravel + Python). The aesthetic is modern **crypto/web3 minimalism** — futuristic, technical, restrained, "expensive": black canvas, white light, grey gradients, thin grid texture, glass cards and a code-as-headline voice.
+The personal site of **Abdurohman Karim**, a backend / full-stack developer in **fintech and payment systems** (PHP/Laravel + Python). The aesthetic is strict-monochrome **crypto/web3 minimalism** — black canvas, white light, grey gradients, thin grid texture, glass cards and a code-as-headline voice.
 
-This repo is both the design-system deliverable (tokens, components, guideline cards) and the actual deployed site: a static single-page app served from [`index.html`](./index.html), with one Netlify Function for form notifications. Live at **synetra.art**.
+A static single-page app served from [`index.html`](./index.html), with one Netlify Function for form notifications. No build step, no `package.json`: React and Babel-standalone come from a CDN and every `.jsx` file in `src/` is shipped as-is and transpiled in the browser.
 
-> **Dark by default, not dark-only.** The system ships a full light theme (`[data-theme="light"]` in `tokens/colors.css`) toggled from the header and persisted in `localStorage`. Design *for* dark first — it's still the primary, most-tested surface — but any new UI must also work under `[data-theme="light"]`.
+> **Dark by default, not dark-only.** A full light theme (`[data-theme="light"]` in `styles/tokens/colors.css`) is toggled from the header and persisted in `localStorage`. Design for dark first, but any new UI must also work under `[data-theme="light"]`.
 
 ---
 
-## Site structure & routes
+## Project structure
 
-The whole site is one HTML shell (`index.html`) that loads React + Babel-standalone from CDN, `_ds_bundle.js` (the compiled design-system components) and each section as an un-bundled `.jsx` file transpiled in-browser — there's no build step or `package.json`; every `<script type="text/babel">` is the shipped source.
+```
+index.html                 shell: SEO head, preloader, script loading order
+netlify.toml               publish ".", functions dir, SPA fallback (/* → /index.html)
+netlify/functions/
+  telegram-notify.js       Contact + Skyridge forms → Telegram
+robots.txt · sitemap.xml · site.webmanifest · favicon.ico
+assets/
+  favicon/                 favicon + PWA icon set (sY monogram)
+  fonts/JetBrainsMono/     mono webfont (Light … Bold)
+  icons/interests/         line icons for the /interests cards (CSS-mask, currentColor)
+  audio/tv-intro.mp3       intro TV sound
+  tv.png                   intro TV set
+styles/
+  main.css                 entry point → imports the tokens
+  tokens/                  fonts · colors (dark + light) · typography · spacing · effects · base
+src/
+  app.jsx                  router (/ and /interests/), global layers, scroll-spy, reveal
+  lib/                     plain JS, loaded before the components
+    notify.js              window.sendNotification() → the Netlify function
+    motion.js              window.akMotion: decrypt scramble() + cursor-light CSS layers
+    landmask.js            Natural Earth land mask for the hero globe (public domain)
+  ui/                      shared building blocks
+    primitives.jsx         window.DS: SectionHeading, Icon, Tag, Badge, Input, Textarea
+    DecryptBtn.jsx         scramble/decrypt CTA button
+    Heartbeat.jsx          live "API 200 · 41ms" status (footer)
+  layout/                  app-wide layers
+    Header.jsx             nav, theme toggle, mobile drawer
+    IntroTV.jsx            CRT intro (first visit, then every 6 h)
+    CustomCursor.jsx       dot + ring; data-cursor="lock | drag | frame" + data-cursor-label
+    CommandTerminal.jsx    Cmd/Ctrl+K terminal
+    DecryptHeadings.jsx    scrambles section code-headers into view
+  sections/                the home page, top to bottom
+    Hero.jsx · About.jsx · Stack.jsx · Projects.jsx (+ ProjectPreviews.jsx) · Repositories.jsx · Contact.jsx
+  pages/
+    InterestsPage.jsx      /interests/ — ice cards + Skyridge join modal
+```
 
-A tiny client-side router (History API, no library) in `index.html` switches between two routes based on `pathname`:
+**Load order matters.** `index.html` runs the scripts in sequence: CDN libraries (React, Babel, GSAP) → `src/lib/*` → `src/ui/*` → `src/layout/*` → `src/sections/*` → `src/pages/*` → `src/app.jsx`. Sections read `window.DS`, `window.akMotion` and `window.DecryptBtn` when they load, so anything they depend on must come earlier.
 
-- **`/`** — `HomeRoute`: `Header → Hero → About → Stack → Projects → Repositories → Contact`, each section (`ui_kits/portfolio/*.jsx`) scroll-spied and revealed via `IntersectionObserver`. `Stack.jsx` drives a pinned GSAP "orbit": skill cards on a 3D arc turned by scroll, drag/flick (Draggable + Inertia), ←/→ or the tab row; a swipe carousel on phones and a static grid under reduced motion.
-- **`/interests`** — `InterestsRoute`: `Header → InterestsPage` (`interests/InterestsPage.jsx`), a "Mountains & Ice" page — six procedurally-cracking ice cards (canvas-free, pure SVG path generation + CSS) covering mountaineering/climbing, plus a **Skyridge** club card that opens a join-request modal.
+**All text/babel scripts share one global scope.** Wrap new files in an IIFE and expose what other files need on `window` (`window.Hero = Hero`). Babel runs with `data-presets="react"` (JSX only; everything else is native), and object-rest parameters (`({ a, ...rest })`) are avoided on purpose — Babel would hoist an `_excluded` helper into that shared scope where files overwrite each other; use `window.akOmit(props, keys)` instead.
 
-Shared across both routes: `CustomCursor.jsx` (dot + trailing ring with context states — frame around controls, corner-bracket "lock" on cards, drag lens, I-beam; desktop only), `Header.jsx` (fixed nav, glass-on-scroll, monogram logo, theme toggle, mobile drawer), `DecryptBtn.jsx` (the cyberpunk scramble/decrypt CTA button used everywhere a primary action appears).
+## Routes
 
-An inline preloader (`#ak-preloader` in `index.html`, no React dependency) paints instantly, drives a fake progress bar while the CDN scripts load, and calls `window.__akReady()` once `<App>` has mounted and painted — with an 8s safety timeout so a slow/failed script never traps the user.
+A tiny client-side router (History API, no library) in `src/app.jsx` switches between two routes:
 
-Netlify's SPA fallback (`netlify.toml`) rewrites any unmatched path to `/index.html` so direct loads/refreshes of `/interests` still resolve.
+- **`/`** — `Header → Hero → About → Stack → Projects → Repositories → Contact`, scroll-spied and revealed on scroll.
+  - **Hero** — name with a variable-weight proximity effect; a dotted, lit, slowly turning globe (drag to spin); entrance after the preloader/intro, dissolves on scroll.
+  - **About** — scroll-lit statement, `whoami --json` card with the live time in Fergana, odometer stats, and a request-flow diagram whose packet walks each engineering principle.
+  - **Stack** — pinned GSAP "orbit": skill cards on a 3D arc turned by scroll, drag/flick (Draggable + Inertia), ←/→ or the tab row; a swipe carousel on phones, a static grid under reduced motion.
+  - **Projects** — bento grid; every card has a live monochrome system preview (`ProjectPreviews.jsx`) and locks the cursor with corner brackets.
+  - **Repositories** — `git ls-remote`: live GitHub API → stats, a `git log --graph` of every repo as a branch off main, and a filterable terminal listing (cached 10 min in sessionStorage).
+  - **Contact** — the form is a `POST /api/contact` composer with a live JSON preview and a streamed 200/422/502 response; availability + channels; footer with heartbeat and back-to-top.
+- **`/interests/`** — `Header → InterestsPage`: ice cards (veins, trapped air bubbles, cursor glint) that fracture like real ice under the pointer — jagged radial and spider-web ring cracks, tilted facets, crush zone, stick–slip growth, chips flying toward the viewer — and refreeze on leave; the **Skyridge** card opens a join-request modal.
+
+An inline preloader (`#ak-preloader` in `index.html`, no React dependency) paints instantly while the CDN scripts load and is dismissed via `window.__akReady()` once `<App>` has mounted — with an 8 s safety timeout so a slow/failed script never traps the user.
 
 ---
 
 ## Integrations — Telegram form notifications
 
-Both forms on the site — the **Contact** section on `/` and the **Skyridge join** form inside the `/interests` modal — submit to the same Netlify Function, [`netlify/functions/telegram-notify.js`](./netlify/functions/telegram-notify.js), via the shared client helper [`assets/js/notify.js`](./assets/js/notify.js) (`window.sendNotification(payload)`).
+Both forms on the site — the **Contact** section on `/` and the **Skyridge join** form inside the `/interests` modal — submit to the same Netlify Function, [`netlify/functions/telegram-notify.js`](./netlify/functions/telegram-notify.js), via the shared client helper [`src/lib/notify.js`](./src/lib/notify.js) (`window.sendNotification(payload)`).
 
 - The function reads `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` from **Netlify environment variables** — never from client code, so the bot token is never exposed in the browser.
 - A `type` field (`"contact"` or `"skyridge"`) picks the message template and required fields, so the two flows are easy to tell apart in the chat: `📩 New contact message` (name/email/message) vs. `🏔 New Skyridge join request` (name/phone/optional message).
 - User-supplied text is HTML-escaped before being sent with `parse_mode: HTML`.
-- Both forms are plain, no-dependency React forms (`FormData`, not controlled inputs) with `idle → sending → sent/error` state and `autoComplete="off"` on every field.
+- Both forms are plain, no-dependency React forms with an `idle → sending → sent/error` state and `autoComplete="off"` on every field; Contact also validates client-side (422-style messages) before sending.
 
 **Required setup before forms work in production:** in Netlify → Site settings → Environment variables, set `TELEGRAM_BOT_TOKEN` (from [@BotFather](https://t.me/BotFather)) and `TELEGRAM_CHAT_ID` (the chat that should receive notifications).
 
@@ -54,15 +97,17 @@ If the production domain ever changes, update it in five places: `index.html` (c
 
 Static hosting on **Netlify** (`netlify.toml`): `publish = "."`, functions in `netlify/functions`, `/*` rewritten to `/index.html` for the SPA. No build command — the site ships as-is, Babel-standalone transpiles JSX at runtime in the browser. The only server-side piece is the Telegram notify function (Node, no dependencies, uses the platform's built-in `fetch`).
 
+**Local development.** Any static server works, but it needs the same SPA fallback as Netlify for `/interests/`: the `site-2020` configuration in `.claude/launch.json` is a small Python server that does that (and disables caching) on http://localhost:2020. Forms can't be sent locally — there is no Netlify Function there, so Contact shows its 502 state.
+
 ---
 
 ## Sources & provenance
 
-This system was synthesized from the developer's existing portfolio — **GitHub [`abdurohman-karim/portfolio_layout`](https://github.com/abdurohman-karim/portfolio_layout)** — which supplied the authentic signatures now baked into this repo: **JetBrains Mono**, the **code-syntax section headers** (`echo "Welcome";`, `$_GET('About')`, `print('Skills')`, `console.log('Projects')`, `cout<<'Contact';`), and the **Iconsax-style duotone line icons** (`cube`, `code-branch`, `bar-chart`, `development`, `file-development`, `arrow-bottom-square`). **GitHub [`abdurohman-karim/portfolio_backend`](https://github.com/abdurohman-karim/portfolio_backend)** (Laravel API — Skills/Projects/Questions) informed the content structure; `Repositories.jsx` fetches the developer's live repos straight from the GitHub API (`api.github.com/users/abdurohman-karim/repos`) rather than hardcoding them.
+This system was synthesized from the developer's existing portfolio — **GitHub [`abdurohman-karim/portfolio_layout`](https://github.com/abdurohman-karim/portfolio_layout)** — which supplied the authentic signatures now baked into this repo: **JetBrains Mono**, the **code-syntax section headers** (`echo "Welcome";`, `$_GET('About')`, `print('Skills')`, `console.log('Projects')`, `cout<<'Contact';`), and the **Iconsax-style duotone line icons** (`cube`, `code-branch`, …) whose paths now live inline in `Icon`. **GitHub [`abdurohman-karim/portfolio_backend`](https://github.com/abdurohman-karim/portfolio_backend)** (Laravel API — Skills/Projects/Questions) informed the content structure; `Repositories.jsx` fetches the developer's live repos straight from the GitHub API (`api.github.com/users/abdurohman-karim/repos`) rather than hardcoding them.
 
 The original portfolio used cyan/purple/orange accents and Poppins; this system re-skins it to **strict monochrome / web3 minimalism** per the project brief, keeping the structural and typographic DNA.
 
-**Known naming inconsistency:** the live header/preloader/favicon all use the **`sY` monogram** and **`syneTra`** wordmark (`Header.jsx`), and so does the `Contact.jsx` footer; only `guidelines/brand-logo.card.html` still shows the earlier **`aK` / `abdurohmanKarim`** mark — reconcile it before shipping further brand touchpoints.
+**Brand:** the `sY` monogram and `syneTra` wordmark are used everywhere — header, preloader, favicon set and footer.
 
 ---
 
@@ -82,7 +127,7 @@ The original portfolio used cyan/purple/orange accents and Poppins; this system 
 
 ## Visual foundations
 
-**Palette — monochrome, no exceptions.** Pure black canvas (`#000`–`#0A0A0A`), white text/accents (`#FFFFFF`), and a grey ramp (`#1A1A1A · #2A2A2A · #6B6B6B · #A0A0A0 · #C4C4C4`) for borders, gradients and secondary text in dark mode; the light theme flips this to near-black text on white/near-white surfaces using the *same* variable names (`tokens/colors.css`, `[data-theme="light"]`). **No hue, no neon, no colored gradients** in either theme. The only "color" is *white (or black) light* — a glow.
+**Palette — monochrome, no exceptions.** Pure black canvas (`#000`–`#0A0A0A`), white text/accents (`#FFFFFF`), and a grey ramp (`#1A1A1A · #2A2A2A · #6B6B6B · #A0A0A0 · #C4C4C4`) for borders, gradients and secondary text in dark mode; the light theme flips this to near-black text on white/near-white surfaces using the *same* variable names (`styles/tokens/colors.css`, `[data-theme="light"]`). **No hue, no neon, no colored gradients** in either theme. The only "color" is *white (or black) light* — a glow.
 
 **Type.** Two families:
 - **Space Grotesk** (geometric sans) — hero, display, headings, big numbers. Large and sparse, tight tracking (`-0.02 → -0.045em`), weight 500.
@@ -91,7 +136,7 @@ See `tokens/typography.css`.
 
 **Backgrounds.** The signature surface is a **thin grid texture** — 1px lines on a 64px cell at ~3.5% white, dissolved into black with a radial mask (`.ak-grid-bg`). No photography, no illustration, no colored gradients. Depth comes from black shadows and a soft white radial glow behind the hero.
 
-**Cards.** Glassmorphic: `var(--surface-card)` fill (4% white) + 1px hairline border (8% white) + `backdrop-filter: blur(16px)` + an inset top hairline highlight. Radius 16px (`--radius-lg`) — crisp, not pill-soft. On hover: lift 3–4px, border brightens to 18% white, and a **white glow halo** blooms (`--glow-halo-md`). The `/interests` ice cards are a themed variant: procedural SVG crack lines + particle "dust" burst on hover/tap, generated fresh per card on mount.
+**Cards.** Glassmorphic: `var(--surface-card)` fill (4% white) + 1px hairline border (8% white) + `backdrop-filter: blur(16px)` + an inset top hairline highlight. Radius 16px (`--radius-lg`) — crisp, not pill-soft. On hover: lift 3–4px, border brightens to 18% white, and a **white glow halo** blooms (`--glow-halo-md`). The `/interests` ice cards are a themed variant that fractures procedurally under the pointer (see Routes).
 
 **Borders.** Everything is divided by hairlines, not boxes — `1px solid rgba(255,255,255,.06–.18)`. Sections are separated by full-width top hairlines.
 
@@ -99,75 +144,35 @@ See `tokens/typography.css`.
 
 **Motion.** Smooth and quiet. `--ease-out` (`cubic-bezier(.16,1,.3,1)`), 160–500ms. Scroll-triggered fade-ups (opacity + 28px translate) via IntersectionObserver; smooth-scroll nav; subtle parallax glow. No bounce, no infinite loops on content — the one exception is the Projects system previews, which loop only while their card is on screen. All gated on `prefers-reduced-motion`.
 
-**Interaction states.** *Hover:* white border + white glow + slight lift; text muted→white; arrows nudge 2–3px. *Focus:* white underline/border + glow halo — form fields have `appearance: none` + an autofill override (`tokens/base.css`) so Safari/Chrome native chrome never bleeds through the custom underline. *Press:* (buttons) translateY back to 0. No color shifts — only luminance.
+**Interaction states.** *Hover:* white border + white glow + slight lift; text muted→white; arrows nudge 2–3px. *Focus:* white underline/border + glow halo — form fields have `appearance: none` + an autofill override (`styles/tokens/base.css`) so Safari/Chrome native chrome never bleeds through the custom underline. *Press:* (buttons) translateY back to 0. No color shifts — only luminance.
 
 **Layout.** Generous whitespace, `max-width: 1240px`, fluid `clamp()` padding, big `--section-gap` (80–180px). Asymmetric two-column rows (label / content). 8px spacing rhythm.
 
 **Radii.** Restrained: 4 / 8 / 12 / 16 / 24px, pill for buttons & tags, full for the status dot. Crisp corners over heavy rounding.
 
-**Modals.** Fixed overlay, backdrop blur, centered panel — but the *overlay* itself scrolls (`overflow-y: auto`, `align-items: flex-start`) and background scroll is locked via `document.body.style.overflow = 'hidden'` while open. This matters on short mobile viewports where a form + CTA can be taller than the screen (see `SkyridgeModal` in `interests/InterestsPage.jsx`).
+**Modals.** Fixed overlay, backdrop blur, centered panel — but the *overlay* itself scrolls (`overflow-y: auto`, `align-items: flex-start`) and background scroll is locked via `document.body.style.overflow = 'hidden'` while open. This matters on short mobile viewports where a form + CTA can be taller than the screen (see `SkyridgeModal` in `src/pages/InterestsPage.jsx`).
 
 ---
 
 ## Iconography
 
-The portfolio's core icon system is **Iconsax-style duotone line icons** — 24px artboard, 2px stroke, round caps/joins, with an optional **0.24-opacity "ghost" fill** behind the stroke. They originate from the developer's `portfolio_layout` repo (`cube`, `code-branch`, `bar-chart`, `development`, `file-development`, `arrow-bottom-square`), recolored to white; the originals live in `assets/icons/*.svg` (and are duplicated at `assets/*.svg` for the design-system card previews).
+The core set is **Iconsax-style duotone line icons** — 24px artboard, 2px stroke, round caps/joins, with an optional **0.24-opacity "ghost" fill** behind the stroke — from the developer's `portfolio_layout` repo, recolored to white. Their paths are inlined in the `Icon` component (`src/ui/primitives.jsx`) together with matching stroke icons for UI and social needs (`server`, `database`, `terminal`, `shield`, `bot`, `send`=Telegram, `github`, `mail`, `arrowUpRight`, `check`, …). All render with `currentColor`.
 
-A second, page-specific set lives at `assets/icons/interests/` (`ice-axe`, `crampon`, `carabiner`, `helmet`, `rope`, `peak`) — line icons for the `/interests` mountaineering cards, rendered via CSS `mask-image` so they inherit `currentColor` and follow the active theme.
-
-For UI and social needs not covered by either set, the `Icon` component (`components/core/Icon.jsx`) adds matching stroke icons in the same weight (`server`, `database`, `terminal`, `shield`, `bot`, `send`=Telegram, `github`, `mail`, `arrowUpRight`, `check`, …). All render with `currentColor`, so they inherit text colour and glow.
+A second, page-specific set lives in `assets/icons/interests/` (`ice-axe`, `crampon`, `carabiner`, `helmet`, `rope`, `peak`) — rendered via CSS `mask-image` so they inherit `currentColor` and follow the active theme.
 
 - **No emoji** as UI icons. A `→` arrow and `✓` check are used as text affordances only (Telegram notifications are the exception — see Integrations).
-- Use `<Icon name="cube" duotone />` for the ghost-fill treatment; omit `duotone` for clean stroke.
-- **Substitution flag (still open):** the non-original UI/social glyphs are drawn to match the Iconsax weight but are not from the exact licensed set. Swap in the real Iconsax / brand SVGs for production if available.
+- `<Icon name="cube" duotone />` for the ghost-fill treatment; omit `duotone` for a clean stroke.
+- **Substitution flag (still open):** the non-original UI/social glyphs are drawn to match the Iconsax weight but are not from the exact licensed set.
 
 ---
 
 ## Fonts
 
-- **JetBrains Mono** — bundled locally (`assets/fonts/JetBrainsMono/*.ttf`, from the dev's repo).
-- **Space Grotesk** — loaded from **Google Fonts CDN** (`tokens/fonts.css`, no local binary shipped). This has been the running choice throughout the build; if a fully offline/self-hosted system is ever required, drop `.ttf`/`.woff2` files in `assets/fonts/SpaceGrotesk/` and replace the `@import` with `@font-face` rules.
+- **JetBrains Mono** — bundled locally (`assets/fonts/JetBrainsMono/`, Light → Bold), declared in `styles/tokens/fonts.css`.
+- **Space Grotesk** — loaded from **Google Fonts** (`styles/tokens/fonts.css`, variable weight 300–700 — the hero name animates it). For a fully self-hosted setup, drop the files in `assets/fonts/SpaceGrotesk/` and replace the `@import` with `@font-face` rules.
 
 ---
 
-## Index / manifest
+## Intro TV sound
 
-**Entry point:** [`index.html`](./index.html) — the deployed shell: preloader, full SEO head, client router, all `<script type="text/babel">` section loads. (`ui_kits/portfolio/index.html` is a separate, simpler standalone preview of just the home-route sections, used by the design-system tooling's card viewer — not the deployed page.)
-
-**Global CSS** (consumers link this one file): [`styles.css`](./styles.css) → imports:
-- `tokens/fonts.css` — `@font-face` + Space Grotesk import
-- `tokens/colors.css` — monochrome scale + semantic surfaces/borders/glow, dark + light theme
-- `tokens/typography.css` — families, scale, weights, roles
-- `tokens/spacing.css` — 8px rhythm, layout, grid cell
-- `tokens/effects.css` — radii, borders, shadows, glow, blur, motion
-- `tokens/base.css` — reset, `.ak-grid-bg`, `.ak-kicker`, form-field appearance/autofill reset, reduced-motion
-
-**Components** (compiled into `_ds_bundle.js`, exposed as `window.AbdurohmanKarimPortfolioDesignSystem_bf6e8b.*` / `window.DS`):
-- `components/core/` — **Button, Tag, Badge, Card, Icon**
-- `components/forms/` — **Input, Textarea**
-- `components/content/` — **SectionHeading, StatCard, ProjectCard, SocialLink**
-
-`_ds_bundle.js` and `_ds_manifest.json` are generated build artifacts of the design-sync tooling (source: `components/**/*.jsx`) — edit the `.jsx` sources, not the bundle, and expect it to be regenerated rather than hand-patched.
-
-**Pages (`ui_kits/portfolio/` + `interests/`):**
-- `Header.jsx` — fixed nav, glass-on-scroll, `sY`/`syneTra` logo, theme toggle, mobile drawer
-- `Hero.jsx` (name with a variable-weight proximity effect; a dotted, lit monochrome globe — Natural Earth land mask in `landmask.js` — turning slowly, drag to spin; entrance after the preloader/intro, dissolves on scroll), `About.jsx` (scroll-lit statement, `whoami --json` card with live Fergana time, odometer stats, and a request-flow diagram whose packet walks each engineering principle), `Stack.jsx` (GSAP 3D orbit), `Projects.jsx` (bento grid; each card has a live monochrome system preview from `ProjectPreviews.jsx`), `Repositories.jsx` (`git ls-remote`: live GitHub API → stats, a `git log --graph` of every repo as a branch off main, and a filterable terminal listing; cached 10 min in sessionStorage), `Contact.jsx` (the form is a `POST /api/contact` composer with a live JSON preview and a streamed 200/422/502 response → Telegram; availability + channels with copy-email; footer with heartbeat and back-to-top)
-- `CustomCursor.jsx` — cursor overlay; components opt in with `data-cursor="lock|drag|frame"` + `data-cursor-label`
-- `akMotion.js` — shared helpers: decrypt `scramble()` and the `.ak-light-spot` / `.ak-light-edge` cursor-light layers
-- `DecryptBtn.jsx` — shared scramble/decrypt CTA button (works as a React component or auto-init'd on any `.decrypt-btn` element)
-- `interests/InterestsPage.jsx` — "Mountains & Ice" page: ice cards (veins, trapped air bubbles, cursor glint) that fracture like real ice under the pointer — jagged radial + spider-web ring cracks, tilted facets, crush zone, stick–slip growth, chips flying toward the viewer — and refreeze on leave; + Skyridge join-form modal
-
-**Backend:**
-- `netlify/functions/telegram-notify.js` — the one server-side function (Contact + Skyridge → Telegram)
-- `assets/js/notify.js` — shared `window.sendNotification()` client helper
-
-**Foundations** (`guidelines/*.card.html`) — specimen cards shown in the design-system tab (Type, Colors, Spacing, Brand/Logo, Grid, Code headers).
-
-**Assets:**
-- `assets/fonts/JetBrainsMono/` — mono webfonts
-- `assets/icons/` — white Iconsax-style brand icons (+ `interests/` subfolder for the mountaineering set)
-- `assets/favicon/` — full favicon/PWA icon set
-
-**SEO/config:** `robots.txt`, `sitemap.xml`, `site.webmanifest`, `favicon.ico`, `netlify.toml`
-
-**Other:** `SKILL.md` (Agent Skill wrapper — points here for the full design guide).
+`assets/audio/tv-intro.mp3` is one pre-mixed clip for the whole ~3.8 s intro (power-on flash 0.30 s → logo + static 0.80 s → spark ~1.88 s → smoke ~2.15 s → power-off 2.85 s → fade-out ~3.4–3.8 s). Path, start offset and volume live in `AK_TV_AUDIO` at the top of `src/layout/IntroTV.jsx`. The sound stops on skip and when the intro ends; a missing file just stays silent. Browsers block autoplay until the visitor has interacted with the page, so on a hard reload it may be muted — expected, not a bug.
