@@ -20,7 +20,7 @@ assets/
   favicon/                 favicon + PWA icon set (sY monogram)
   fonts/JetBrainsMono/     mono webfont (Light … Bold)
   icons/interests/         line icons for the /interests cards (CSS-mask, currentColor)
-  audio/tv-intro.mp3       intro TV sound
+  audio/tv-intro.mp3       old intro TV clip — no longer played (the film's sound is synthesised)
   tv.png                   intro TV set
 styles/
   main.css                 entry point → imports the tokens
@@ -31,6 +31,7 @@ src/
     notify.js              window.sendNotification() → the Netlify function
     motion.js              window.akMotion: decrypt scramble() + cursor-light CSS layers
     landmask.js            Natural Earth land mask for the hero globe (public domain)
+    tvsound.js             the intro TV film's soundtrack, synthesised in a Web Worker
   ui/                      shared building blocks
     primitives.jsx         window.DS: SectionHeading, Icon, Tag, Badge, Input, Textarea
     DecryptBtn.jsx         scramble/decrypt CTA button
@@ -177,4 +178,6 @@ A second, page-specific set lives in `assets/icons/interests/` (`ice-axe`, `cram
 
 The hero's **Get in touch** plays a ~14.7 s film, every click (the button fires `ak:intro`, `src/app.jsx` mounts the film; the page stays where it was afterwards). It runs on one GSAP timeline; its clock is `AK_T` at the top of `src/layout/IntroTV.jsx`: power-on flash 0.30 s → logo + static 0.80 s → camera dolly-in 1.45 s → screen fills the frame 3.70 s → through the glass, reel inside the screen 4.45 / 6.30 / 8.20 s → pull-out 10.0–11.9 s → short-circuit pops 12.25 / 12.65 / 13.05 s → collapse 13.2 s → fade-out 14.1–14.7 s. Add `?intro` to the URL to play it on load (demos, screen recordings). Any key or click skips it.
 
-`assets/audio/tv-intro.mp3` is played as cues along that timeline (`AK_TV_AUDIO.cues`: when on the timeline, where in the clip, how long). The current 2.8 s clip is cut in two — its power-on thump + hum opens the film, its crackle returns for the short circuit; the reel in between is silent. For a full soundtrack, mix one clip to the timeline above and set `cues: [[0, 0, AK_T.end]]`. The sound stops on skip and when the intro ends; a missing file just stays silent. Started from the button click the sound plays; with `?intro` on a hard reload the browser's autoplay policy may mute it — expected, not a bug.
+The sound has no file: `src/lib/tvsound.js` synthesises the whole track in code, the way the coddle Studio film v2 does — every sound is sample maths written into stereo buffers, the noise is seeded (the film always sounds the same), then one dark hall, a bus compressor and a look-ahead limiter. No beats; the hits are deep blasts after that film's deep kit (a sine dropping 95 → 30 Hz driven hard, the air sucked back in, aftershocks, the pressure throbbing), and the bed is sucked out before each big one and muffled after it — the ears closing. Along the film: a relay and the degauss «thunk-hummm» on power-on, the tube charging, hum and snow; a long suck into the glass and the biggest blow of the film as the camera dives through it (a sub ringing for seconds, a faint ringing in the ears); inside, a drone and chords (Dm → B♭ → F → A7) under the reel, knocks for the words, rising notes for the lines, decrypt ticks, a blast on each push and on the logo; a deep swell backwards on the pull-out; then three faults, each shaking the camera — each a blast and a real spark, dry (the short circuit is never muffled): a spark is a train of sub-millisecond cracks and an arc restrikes on every mains half-cycle, so there is no oscillator in it, only seeded impulses panned where the embers fly, a body in the low mids, a short room, the top rounded off and dipped so it snaps without cutting; between them the vertical hold slipping and a surge into the last blast; then the falling «pew» of the tube dying and smoke.
+
+`score()` places everything on `AK_T` (IntroTV posts it to the worker), so retiming the film retimes the sound. IntroTV renders the track once while the page is idle (~0.7 s of worker time) and keeps it for every replay; a click before it is ready joins the film where it is. The sound stops on skip and when the intro ends; without Web Workers it stays silent. Started from the button click the sound plays; with `?intro` on a hard reload the browser's autoplay policy may mute it — expected, not a bug. To listen outside the browser, `require()` the file under Node and write `render(AK_T)` to a WAV.

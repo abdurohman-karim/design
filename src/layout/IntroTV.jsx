@@ -641,28 +641,37 @@ function akBakeTv() {
 }
 if (typeof window !== 'undefined') (window.requestIdleCallback || ((f) => setTimeout(f, 1500)))(akBakeTv);
 
-/* ── Audio ───────────────────────────────────────────────────────────────────
-   One clip, played as cues along the film. Each cue is
-   [when on the timeline (s), where in the clip (s), how long (s)].
-   The current tv-intro.mp3 (2.8 s) is cut in two: its power-on thump + hum
-   opens the film, its crackle comes back for the short circuit. Mix a new
-   clip to the full film (see AK_T) and set cues to [[0, 0, AK_T.end]].
-   Optional: a missing file just stays silent (no errors).
+/* ── Sound ───────────────────────────────────────────────────────────────────
+   No audio file: the whole track is synthesised in code by src/lib/tvsound.js
+   (the craft of the coddle Studio film v2 — sample maths, seeded noise, deep
+   blasts, a dark hall). It runs in a Web Worker on the film's clock, AK_T, so
+   retiming the film retimes the sound. Rendered once while the page is idle
+   (~0.7 s of worker time, never on the main thread) and kept for every replay;
+   a click before it's ready joins the film where it is. No Worker → silent.
 
    Path is absolute (leading "/") so it resolves on every route, including
-   /interests. The file lives at  assets/audio/tv-intro.mp3 .
+   /interests.
 
    NOTE: browsers block autoplay until the user interacts with the page. Played
    from the "Get in touch" click the sound is allowed; with ?intro on a hard
    reload it may be muted by the autoplay policy — expected, not an error. */
-const AK_TV_AUDIO = {
-  src: '/assets/audio/tv-intro.mp3',
-  volume: 0.7,
-  cues: [
-    [0, 0, 1.8],                          // power-on thump + tube hum
-    [AK_T.faults[0] - 0.1, 2.05, 0.77],   // the crackle, re-used for the short circuit
-  ],
-};
+const AK_TV_SOUND = { src: '/src/lib/tvsound.js', volume: 1 };
+let akTvTrack = null;   // Promise<{ L, R, sr } | null>, one render per page load
+function akTvSoundtrack() {
+  if (!akTvTrack) {
+    akTvTrack = new Promise((resolve) => {
+      let w;
+      try { w = new Worker(AK_TV_SOUND.src); } catch (e) { resolve(null); return; }
+      w.onmessage = (e) => { resolve(e.data); w.terminate(); };
+      w.onerror = () => { resolve(null); w.terminate(); };
+      w.postMessage({ T: AK_T });
+    }).then((t) => { if (!t) akTvTrack = null; return t; });   // a failed render is retried next play
+  }
+  return akTvTrack;
+}
+if (typeof window !== 'undefined' && window.Worker) {
+  (window.requestIdleCallback || ((f) => setTimeout(f, 2500)))(() => akTvSoundtrack(), { timeout: 8000 });
+}
 
 // Header logo — used on the screen and (scaled) as the reel's closing lockup.
 const AkLogo = ({ className }) => (
@@ -1069,37 +1078,32 @@ function IntroTV({ onFinish }) {
     };
   }, [sparks, puffs]);
 
-  // One clip, played as cues along the film (see AK_TV_AUDIO). Missing file
-  // stays silent, autoplay blocks are swallowed, and everything stops on
-  // skip/unmount so nothing bleeds into the site.
+  // The synthesised track (see AK_TV_SOUND), started where the film is now.
+  // A failed render stays silent, autoplay blocks are swallowed, and
+  // everything stops on skip/unmount so nothing bleeds into the site.
   React.useEffect(() => {
-    const cfg = AK_TV_AUDIO;
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!cfg || !cfg.src || !AC) return undefined;
+    if (!AC || !window.Worker) return undefined;
     let ac;
     try { ac = new AC(); } catch (e) { return undefined; }
     const gain = ac.createGain();
-    gain.gain.value = cfg.volume == null ? 1 : cfg.volume;
+    gain.gain.value = AK_TV_SOUND.volume;
     gain.connect(ac.destination);
-    const t0 = performance.now();
     let dead = false;
 
-    fetch(cfg.src)
-      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no audio'))))
-      .then((ab) => new Promise((res, rej) => ac.decodeAudioData(ab, res, rej)))
-      .then((buf) => {
-        if (dead) return;
-        const elapsed = (performance.now() - t0) / 1000;    // film time already played
-        cfg.cues.forEach(([at, from, len]) => {
-          const late = Math.max(0, elapsed - at);
-          if (late >= len) return;
-          const src = ac.createBufferSource();
-          src.buffer = buf;
-          src.connect(gain);
-          src.start(ac.currentTime + Math.max(0, at - elapsed), from + late, len - late);
-        });
-      })
-      .catch(() => {});                                     // 404 / decode error → silent
+    akTvSoundtrack().then((t) => {
+      if (dead || !t) return;
+      const buf = ac.createBuffer(2, t.L.length, t.sr);
+      buf.getChannelData(0).set(t.L);
+      buf.getChannelData(1).set(t.R);
+      // the film's own clock, plus the output latency so the hits land on the picture
+      const at = (tlRef.current ? tlRef.current.time() : 0) + (ac.outputLatency || ac.baseLatency || 0);
+      if (at >= buf.duration) return;
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      src.connect(gain);
+      src.start(0, at);
+    });
     if (ac.state === 'suspended') ac.resume().catch(() => {});   // blocked before a gesture → ignore
 
     const stop = () => {
