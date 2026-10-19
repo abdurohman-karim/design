@@ -22,6 +22,7 @@ assets/
   icons/interests/         line icons for the /interests cards (CSS-mask, currentColor)
   audio/tv-intro.mp3       old intro TV clip — no longer played (the film's sound is synthesised)
   tv.png                   intro TV set
+  signature.svg            handwritten signature under the hero portrait (CSS-mask, currentColor)
 styles/
   main.css                 entry point → imports the tokens
   tokens/                  fonts · colors (dark + light) · typography · spacing · effects · base
@@ -30,7 +31,7 @@ src/
   lib/                     plain JS, loaded before the components
     notify.js              window.sendNotification() → the Netlify function
     motion.js              window.akMotion: decrypt scramble() + cursor-light CSS layers
-    landmask.js            Natural Earth land mask for the hero globe (public domain)
+    portrait.js            the hero portrait baked into a hex grid of dot strengths (dark + light theme)
     tvsound.js             the intro TV film's soundtrack, synthesised in a Web Worker
   ui/                      shared building blocks
     primitives.jsx         window.DS: SectionHeading, Icon, Tag, Badge, Input, Textarea
@@ -57,7 +58,7 @@ src/
 A tiny client-side router (History API, no library) in `src/app.jsx` switches between two routes:
 
 - **`/`** — `Header → Hero → About → Stack → Projects → Repositories → Contact`, scroll-spied and revealed on scroll.
-  - **Hero** — name with a variable-weight proximity effect; a dotted, lit, slowly turning globe (drag to spin); entrance after the preloader/intro, dissolves on scroll.
+  - **Hero** — name with a variable-weight proximity effect; a static dotted portrait lit by a breathing glow, flaring dots and waves of light where the cursor touches its dots, signed with a traced handwritten signature (framed as a dark print on the light theme); entrance after the preloader/intro, dissolves on scroll.
   - **About** — scroll-lit statement, `whoami --json` card with the live time in Fergana, odometer stats, and a request-flow diagram whose packet walks each engineering principle.
   - **Stack** — pinned GSAP "orbit": skill cards on a 3D arc turned by scroll, drag/flick (Draggable + Inertia), ←/→ or the tab row; a swipe carousel on phones, a static grid under reduced motion.
   - **Projects** — bento grid; every card has a live monochrome system preview (`ProjectPreviews.jsx`) and locks the cursor with corner brackets.

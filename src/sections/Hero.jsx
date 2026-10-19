@@ -1,9 +1,9 @@
 // Portfolio — Hero. echo "Welcome";
 //   left:  banner, the name (variable-weight proximity effect), role, pitch,
 //          CTAs and a meta line (availability + local time in Fergana)
-//   right: a dotted, lit monochrome globe — continents from a Natural Earth
-//          land mask (landmask.js) — turning slowly; it leans toward the
-//          pointer and can be spun.
+//   right: a static dotted portrait (portrait.js); only light moves on it —
+//          a breathing glow, flaring dots and waves of light from the cursor —
+//          signed underneath (assets/signature.svg).
 // Entrance plays once the preloader / intro TV are gone; on scroll the hero
 // dissolves into About. Wrapped in an IIFE: Babel script tags share one
 // global scope.
@@ -60,10 +60,39 @@
         background: var(--text-primary); box-shadow: 0 0 10px var(--glow-medium), 0 0 22px var(--glow-soft);
       }
 
-      .ak-hero-globe { position: relative; width: 100%; aspect-ratio: 1; max-width: 560px; justify-self: end; touch-action: pan-y; }
-      @media (max-width: 900px) { .ak-hero-globe { max-width: 380px; justify-self: center; margin-top: 8px; } }
-      .ak-hero-globe canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      /* the portrait bleeds into the right gutter so it can be larger than its column */
+      .ak-hero-art {
+        position: relative; margin: 0 calc(-1 * min(var(--container-pad), 72px)) 0 0; justify-self: end;
+        width: calc(100% + min(var(--container-pad), 72px)); max-width: 640px;
+      }
+      @media (max-width: 900px) { .ak-hero-art { width: 100%; max-width: 440px; margin: 8px 0 0; justify-self: center; } }
+      .ak-hero-portrait { position: relative; width: 100%; aspect-ratio: 1; touch-action: pan-y; }
+      .ak-hero-portrait canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      /* the signature (assets/signature.svg) under the portrait, tucked into its
+         empty lower-right corner; the SVG is a mask, so it takes the text colour */
+      .ak-hero-sign {
+        display: block; width: clamp(150px, 34%, 220px); margin: -14% 8% 0 auto; pointer-events: none;
+        filter: drop-shadow(0 0 8px var(--glow-medium)) drop-shadow(0 0 22px var(--glow-soft));
+      }
+      .ak-hero-sign span {
+        display: block; aspect-ratio: 827 / 424; background: var(--text-primary);
+        -webkit-mask: url('/assets/signature.svg') center / contain no-repeat;
+        mask: url('/assets/signature.svg') center / contain no-repeat;
+      }
+      /* light theme: the art keeps its dark-room look as a framed print — a dark
+         card with a hairline mat that brings the dark theme's colours inside */
+      [data-theme="light"] .ak-hero-art {
+        --text-primary: #FFFFFF; --glow-soft: rgba(255, 255, 255, 0.10); --glow-medium: rgba(255, 255, 255, 0.22);
+        background: #0A0A0A; border-radius: var(--radius-2xl); padding-bottom: 22px; overflow: hidden;
+        box-shadow: 0 40px 80px -32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.08);
+        outline: 1px solid rgba(255, 255, 255, 0.10); outline-offset: -12px;
+      }
+      /* a visible card can't bleed into the gutter until the page has margin to spare */
+      @media (max-width: 1400px) { [data-theme="light"] .ak-hero-art { width: 100%; margin-right: 0; } }
       .ak-hero-probe { position: absolute; width: 0; height: 0; overflow: hidden; color: var(--text-primary); }
+      /* the canvas reads the probe's colour the moment data-theme flips — keep
+         it out of the 0.3 s .theme-transition so it isn't read mid-fade */
+      .ak-hero-portrait .ak-hero-probe { transition: none !important; }
 
       .ak-hero-scroll {
         position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
@@ -166,39 +195,49 @@
   }
 
   /* ─────────────────────────────────────────────────────────────────────────
-     Globe — dotted, lit, slowly turning. Continents from the Natural Earth
-     land mask (landmask.js), a sparse dotted ocean for volume, a soft
-     atmosphere at the limb. Drag to spin (with inertia).
+     Portrait — the face as a field of lit dots (portrait.js), in the same
+     visual language as the dotted globe it replaced. The art itself is
+     static; only light moves: a slow breathing glow, a few dots that flare
+     and fade, and waves — where the cursor touches the art's dots a ring of
+     light runs out across them (never beyond); moving over it leaves ripples.
+     The dots are always light on dark: on the light theme the art sits in a
+     dark frame that carries the dark theme's colours (see .ak-hero-art).
      ───────────────────────────────────────────────────────────────────────── */
-  const RAD = Math.PI / 180;
-  const START_LON = 60;              // Central Asia faces the viewer first
-  const TILT = 22 * RAD;             // north pole leans toward the viewer
-  const SPIN = (2 * Math.PI) / 110;  // one turn every ~110 s
-  /* light from the upper left, a little in front — gives the sphere its shape */
-  const LIGHT = (() => { const l = [-0.55, 0.62, 0.56], n = Math.hypot(...l); return l.map((v) => v / n); })();
+  const PORTRAIT_LEVELS = 10;
+  const PORTRAIT_MIN = 0.07;  // weaker cells draw no dot
+  const DOT_ALPHA = [0.12, 0.76];  // opacity of the faintest dot, and how much the brightest adds
+  const DOT_TONE = 1.15;      // > 1 keeps the highlights from burning white
+  const GLOW = [0.3, 0.34];   // glow opacity at the bottom of a breath, and how much a breath adds
+  const BREATH = 6;          // s per glow breath
+  const SPARKS = 14;         // dots flaring at any moment
+  const SPARK_LIFE = 2.6;    // s one flare lasts
+  const WAVE_SPEED = 520;    // px/s a wave of light runs out
+  const WAVE_WIDTH = 56;     // px, the lit band of a wave
+  const WAVE_TRAIL = 150;    // px the cursor moves inside before it leaves a ripple
+  const WAVES_MAX = 5;       // waves alive at once
+  const HIT_CELL = 6;        // px, cell of the map of where the art's dots are
+  const HIT_PAD = 2;         // cells of slack around the dots
+  const REENTER = 0.25;      // s off the art before coming back on counts as a new touch
 
-  function spherePoints(N, keep) {
-    const golden = Math.PI * (3 - Math.sqrt(5)), out = [];
-    for (let i = 0; i < N; i++) {
-      const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = golden * i;
-      const x = Math.cos(th) * r, z = Math.sin(th) * r;
-      if (keep(Math.asin(y) / RAD, Math.atan2(x, z) / RAD)) out.push([x, y, z]);
+  function portraitData() {
+    const p = window.AK_PORTRAIT;
+    if (!p) return null;
+    const bin = atob(p.b64);
+    const rh = p.pitch * Math.sqrt(3) / 2;
+    const x = [], y = [], s = [];
+    for (let row = 0; row < p.rows; row++) {
+      for (let j = 0; j < p.cols; j++) {
+        const v = bin.charCodeAt(row * p.cols + j) / 255;
+        if (v < PORTRAIT_MIN) continue;
+        x.push(p.pitch * 0.5 + j * p.pitch + (row % 2) * p.pitch / 2);
+        y.push(rh * 0.5 + row * rh);
+        s.push(v);
+      }
     }
-    return out;
-  }
-  function landTest() {
-    const m = window.AK_LANDMASK;
-    if (!m) return () => false;
-    const bin = atob(m.b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return (lat, lon) => {
-      const col = Math.min(m.w - 1, Math.floor(lon + 180)), row = Math.min(m.h - 1, Math.floor(90 - lat));
-      return (bytes[row * m.rowBytes + (col >> 3)] & (0x80 >> (col & 7))) !== 0;
-    };
+    return { w: p.w, h: p.h, pitch: p.pitch, n: x.length, x, y, s };
   }
 
-  function Globe({ introRef }) {
+  function Portrait({ introRef }) {
     const wrapRef = React.useRef(null);
     const canvasRef = React.useRef(null);
     const probeRef = React.useRef(null);
@@ -206,149 +245,197 @@
     React.useEffect(() => {
       const wrap = wrapRef.current, canvas = canvasRef.current, ctx = canvas.getContext('2d');
       const reduced = reducedMotion();
-      const isLand = landTest();
-      const land = spherePoints(10000, (la, lo) => isLand(la, lo));
-      const ocean = spherePoints(2400, (la, lo) => !isLand(la, lo));
+      const D = portraitData();
+      const layer = () => document.createElement('canvas');
+      const dotsC = layer(), glowC = layer(), waveC = layer(), sparkC = layer();
+      let W = 0, H = 0, dpr = 1, k = 1, ox = 0, oy = 0, ink = '255,255,255';
+      let hit = null, hitCols = 0, hitRows = 0;
+      const S = D ? D.s : [];                        // dot strengths
+      const bright = [];                             // dots the flares may light
+      for (let i = 0; i < S.length; i++) if (S[i] > 0.45) bright.push(i);
 
-      let W = 0, H = 0, rgb = '255,255,255';
       const readTheme = () => {
         const c = getComputedStyle(probeRef.current).color.match(/\d+(\.\d+)?/g) || [255, 255, 255];
-        rgb = `${c[0]},${c[1]},${c[2]}`;
+        ink = `${c[0]},${c[1]},${c[2]}`;
       };
+
+      /* the static art, rendered once per size / theme: crisp dots, then the
+         same dots with a blur halo for the glow, and a soft sprite for flares */
+      const build = () => {
+        if (!D || !W) return;
+        k = Math.min(W / D.w, H / D.h);
+        ox = (W - D.w * k) / 2; oy = (H - D.h * k) / 2;
+        dotsC.width = glowC.width = waveC.width = canvas.width;
+        dotsC.height = glowC.height = waveC.height = canvas.height;
+
+        const dc = dotsC.getContext('2d');
+        dc.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const rmax = D.pitch * 0.42 * k;
+        const bins = Array.from({ length: PORTRAIT_LEVELS }, () => []);
+        for (let i = 0; i < D.n; i++) if (S[i] >= PORTRAIT_MIN) bins[Math.min(PORTRAIT_LEVELS - 1, Math.floor(S[i] * PORTRAIT_LEVELS))].push(i);
+        bins.forEach((L, b) => {
+          if (!L.length) return;
+          const level = ((b + 0.5) / PORTRAIT_LEVELS) ** DOT_TONE;
+          dc.fillStyle = `rgba(${ink},${(DOT_ALPHA[0] + DOT_ALPHA[1] * level).toFixed(3)})`;
+          dc.beginPath();
+          for (const i of L) {
+            const x = ox + D.x[i] * k, y = oy + D.y[i] * k, r = rmax * (0.35 + 0.65 * Math.sqrt(S[i]));
+            dc.moveTo(x + r, y); dc.arc(x, y, r, 0, Math.PI * 2);
+          }
+          dc.fill();
+        });
+
+        /* where the dots are, coarsely — the cursor wakes the art only over them */
+        hitCols = Math.ceil(W / HIT_CELL); hitRows = Math.ceil(H / HIT_CELL);
+        hit = new Uint8Array(hitCols * hitRows);
+        for (let i = 0; i < D.n; i++) {
+          if (S[i] < 0.12) continue;
+          const cx = Math.floor((ox + D.x[i] * k) / HIT_CELL), cy = Math.floor((oy + D.y[i] * k) / HIT_CELL);
+          for (let yy = Math.max(0, cy - HIT_PAD); yy <= Math.min(hitRows - 1, cy + HIT_PAD); yy++) {
+            for (let xx = Math.max(0, cx - HIT_PAD); xx <= Math.min(hitCols - 1, cx + HIT_PAD); xx++) hit[yy * hitCols + xx] = 1;
+          }
+        }
+
+        const gc = glowC.getContext('2d');
+        gc.shadowColor = `rgba(${ink},1)`;
+        gc.shadowBlur = Math.max(5, 14 * k) * dpr;
+        gc.drawImage(dotsC, 0, 0);
+
+        sparkC.width = sparkC.height = 64;
+        const sc = sparkC.getContext('2d'), g = sc.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, `rgba(${ink},1)`); g.addColorStop(0.25, `rgba(${ink},0.45)`); g.addColorStop(1, `rgba(${ink},0)`);
+        sc.fillStyle = g; sc.fillRect(0, 0, 64, 64);
+      };
+
       const resize = () => {
         const r = wrap.getBoundingClientRect();
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        dpr = Math.min(2, window.devicePixelRatio || 1);
         W = r.width; H = r.height;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        build();
       };
 
-      /* view: steady spin + pointer lean + drag (inertia) */
-      const view = { yaw: START_LON * RAD, lean: 0, leanT: 0, tilt: 0, tiltT: 0, vel: 0, dragging: false };
-      let sy = 0, cy = 1, sp = 0, cp = 1;
-      const project = (v, out) => {
-        const x1 = v[0] * cy - v[2] * sy, z1 = v[0] * sy + v[2] * cy;
-        out[0] = x1; out[1] = v[1] * cp - z1 * sp; out[2] = v[1] * sp + z1 * cp;
-        return out;
-      };
-      /* brightness of a surface point (its position is its normal on a unit sphere) */
-      const lit = (p) => 0.28 + 0.72 * Math.max(0, p[0] * LIGHT[0] + p[1] * LIGHT[1] + p[2] * LIGHT[2]);
+      /* flares: each slot lights one bright dot, fades, then moves to another */
+      const pick = () => (bright.length ? bright[Math.floor(Math.random() * bright.length)] : -1);
+      const sparks = Array.from({ length: SPARKS }, () => ({ i: -1, t0: -Math.random() * SPARK_LIFE }));
 
-      const P = [0, 0, 0];
-      const LEVELS = 8;
-      const draw = () => {
+      /* waves of light: each runs out from a point until it has crossed the art */
+      const waves = [];
+      const spawn = (x, y, a) => {
+        if (reduced || !W) return;
+        const far = Math.max(Math.hypot(x, y), Math.hypot(W - x, y), Math.hypot(x, H - y), Math.hypot(W - x, H - y));
+        waves.push({ x, y, a, t0: performance.now() / 1000, life: (far + WAVE_WIDTH) / WAVE_SPEED });
+        if (waves.length > WAVES_MAX) waves.shift();
+        kick();
+      };
+
+      const draw = (now) => {
         const intro = introRef.current.v;
-        ctx.clearRect(0, 0, W, H);
-        if (!W || intro <= 0) return;
-        const yaw = view.yaw + view.lean, pitch = TILT + view.tilt;
-        sy = Math.sin(yaw); cy = Math.cos(yaw); sp = Math.sin(pitch); cp = Math.cos(pitch);
-        const R = Math.min(W, H) * 0.43 * (0.86 + 0.14 * intro);
-        const cx = W / 2, cyc = H / 2;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!D || !W || intro <= 0) return;
+        const t = now / 1000;
+        ctx.save();
+
+        /* the glow breathes; the dots stay put */
+        const breath = reduced ? 0.5 : 0.5 + 0.5 * Math.sin((t * 2 * Math.PI) / BREATH);
+        ctx.globalAlpha = intro * (GLOW[0] + GLOW[1] * breath);
+        ctx.drawImage(glowC, 0, 0);
         ctx.globalAlpha = intro;
+        ctx.drawImage(dotsC, 0, 0);
 
-        /* atmosphere: a soft halo outside the limb */
-        let g = ctx.createRadialGradient(cx, cyc, R * 0.92, cx, cyc, R * 1.22);
-        g.addColorStop(0, `rgba(${rgb},0.10)`); g.addColorStop(0.35, `rgba(${rgb},0.04)`); g.addColorStop(1, `rgba(${rgb},0)`);
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cyc, R * 1.22, 0, Math.PI * 2); ctx.fill();
-        /* body: faintly lit disc, brighter toward the light */
-        g = ctx.createRadialGradient(cx - R * 0.45, cyc - R * 0.5, R * 0.1, cx, cyc, R);
-        g.addColorStop(0, `rgba(${rgb},0.07)`); g.addColorStop(1, `rgba(${rgb},0.012)`);
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cyc, R, 0, Math.PI * 2); ctx.fill();
-
-        /* far side of the land, seen through the sphere */
-        ctx.fillStyle = `rgba(${rgb},0.05)`;
-        ctx.beginPath();
-        for (let i = 0; i < land.length; i += 2) {
-          project(land[i], P);
-          if (P[2] >= 0) continue;
-          ctx.rect(cx + P[0] * R - 0.5, cyc - P[1] * R - 0.5, 1, 1);
-        }
-        ctx.fill();
-
-        /* ocean: sparse, dim dots — gives the sphere its volume */
-        ctx.fillStyle = `rgba(${rgb},0.09)`;
-        ctx.beginPath();
-        for (let i = 0; i < ocean.length; i++) {
-          project(ocean[i], P);
-          if (P[2] <= 0.02) continue;
-          const s = 0.6 + 0.6 * P[2];
-          ctx.rect(cx + P[0] * R - s / 2, cyc - P[1] * R - s / 2, s, s);
-        }
-        ctx.fill();
-
-        /* land: round dots, lit, bigger toward the centre — one path per level */
-        const bins = Array.from({ length: LEVELS }, () => []);
-        for (let i = 0; i < land.length; i++) {
-          project(land[i], P);
-          if (P[2] <= 0) continue;
-          const b = Math.min(LEVELS - 1, Math.floor(lit(P) * LEVELS));
-          bins[b].push(cx + P[0] * R, cyc - P[1] * R, 0.55 + 0.75 * Math.sqrt(P[2]));
-        }
-        for (let b = 0; b < LEVELS; b++) {
-          const L = bins[b];
-          if (!L.length) continue;
-          ctx.fillStyle = `rgba(${rgb},${(0.16 + 0.84 * ((b + 0.5) / LEVELS)).toFixed(3)})`;
-          ctx.beginPath();
-          for (let i = 0; i < L.length; i += 3) { ctx.moveTo(L[i] + L[i + 2], L[i + 1]); ctx.arc(L[i], L[i + 1], L[i + 2], 0, Math.PI * 2); }
-          ctx.fill();
+        ctx.globalCompositeOperation = 'lighter';
+        if (!reduced) {
+          const size = D.pitch * k * 3.2 * dpr;
+          for (const sp of sparks) {
+            let life = (t - sp.t0) / SPARK_LIFE;
+            if (life >= 1 || life < 0 || sp.i < 0) { sp.i = pick(); sp.t0 = t; life = 0; }
+            if (sp.i < 0) continue;
+            const a = Math.sin(Math.PI * life) ** 2;
+            ctx.globalAlpha = intro * a * 0.55;
+            ctx.drawImage(sparkC, (ox + D.x[sp.i] * k) * dpr - size / 2, (oy + D.y[sp.i] * k) * dpr - size / 2, size, size);
+          }
         }
 
-        /* limb: a thin bright rim where the atmosphere is seen edge-on */
-        g = ctx.createRadialGradient(cx, cyc, R * 0.88, cx, cyc, R);
-        g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(1, `rgba(${rgb},0.16)`);
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cyc, R, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = `rgba(${rgb},0.14)`; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(cx, cyc, R, 0, Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1;
+        /* waves: the dots and their glow, cut to a ring that grows from the
+           wave's origin, added on top — so the light only ever runs over the art */
+        const wc = waveC.getContext('2d');
+        for (let w = waves.length - 1; w >= 0; w--) {
+          const wv = waves[w], age = t - wv.t0;
+          if (age > wv.life) { waves.splice(w, 1); continue; }
+          if (age < 0) continue;
+          const r = age * WAVE_SPEED * dpr, bw = WAVE_WIDTH * dpr, R = r + bw;
+          const cx = wv.x * dpr, cy = wv.y * dpr;
+          const x0 = Math.max(0, Math.floor(cx - R)), y0 = Math.max(0, Math.floor(cy - R));
+          const bwid = Math.min(canvas.width, Math.ceil(cx + R)) - x0, bhgt = Math.min(canvas.height, Math.ceil(cy + R)) - y0;
+          if (bwid <= 0 || bhgt <= 0) continue;
+          const fade = intro * wv.a * (1 - age / wv.life) ** 1.4;
+          const ring = wc.createRadialGradient(cx, cy, 0, cx, cy, R);
+          const inner = Math.max(0, (r - bw) / R);
+          ring.addColorStop(0, 'rgba(0,0,0,0)');
+          if (inner > 0) ring.addColorStop(inner, 'rgba(0,0,0,0)');
+          ring.addColorStop(r / R, 'rgba(0,0,0,1)');
+          ring.addColorStop(1, 'rgba(0,0,0,0)');
+          wc.globalCompositeOperation = 'source-over';
+          wc.clearRect(x0, y0, bwid, bhgt);
+          wc.drawImage(glowC, x0, y0, bwid, bhgt, x0, y0, bwid, bhgt);
+          wc.drawImage(dotsC, x0, y0, bwid, bhgt, x0, y0, bwid, bhgt);
+          wc.globalCompositeOperation = 'destination-in';
+          wc.fillStyle = ring; wc.fillRect(x0, y0, bwid, bhgt);
+          for (const a of [1, 0.6]) {          // added twice: dim dots light up, the halo blooms
+            ctx.globalAlpha = fade * a;
+            ctx.drawImage(waveC, x0, y0, bwid, bhgt, x0, y0, bwid, bhgt);
+          }
+        }
+        ctx.restore();
       };
 
-      /* loop — only while on screen */
-      let raf = null, visible = true, last = performance.now();
+      /* loop — only while on screen; nothing but light changes */
+      let raf = null, visible = true;
       const frame = (now) => {
         raf = null;
-        const dt = Math.min(0.05, (now - last) / 1000);
-        last = now;
-        view.lean += (view.leanT - view.lean) * 0.06;
-        view.tilt += (view.tiltT - view.tilt) * 0.06;
-        if (!view.dragging) {
-          view.yaw -= SPIN * dt - view.vel;   // eastward: the surface drifts left → right
-          view.vel *= 0.95;                 // flick inertia dies out, the steady turn stays
-        }
-        draw();
+        draw(now);
         if (visible && !reduced) raf = requestAnimationFrame(frame);
       };
-      const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+      const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
 
-      /* pointer: lean toward it; drag to spin */
-      let lastX = 0;
-      const onMove = (e) => {
-        const r = wrap.getBoundingClientRect();
-        view.leanT = ((e.clientX - r.left) / r.width - 0.5) * 0.45;
-        view.tiltT = ((e.clientY - r.top) / r.height - 0.5) * -0.28;
-        if (view.dragging) {
-          const dx = e.clientX - lastX;
-          lastX = e.clientX;
-          view.vel = -dx * 0.006;           // the surface follows the pointer
-          view.yaw += view.vel;
-        }
-        if (reduced) kick();
+      /* the cursor touching the art (its dots, not the empty box around them)
+         sends a wave from that point; moving over it leaves softer ripples */
+      let trail = null, offSince = -Infinity;
+      const onArt = (x, y) => {
+        const cx = Math.floor(x / HIT_CELL), cy = Math.floor(y / HIT_CELL);
+        return !!hit && cx >= 0 && cy >= 0 && cx < hitCols && cy < hitRows && hit[cy * hitCols + cx] === 1;
       };
-      const onDown = (e) => { view.dragging = true; lastX = e.clientX; if (wrap.setPointerCapture) wrap.setPointerCapture(e.pointerId); };
-      const onUp = () => { view.dragging = false; };
-      const onLeave = () => { view.leanT = 0; view.tiltT = 0; };
+      const onMove = (e) => {
+        const r = wrap.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+        const now = performance.now() / 1000;
+        if (!onArt(x, y)) {
+          if (trail) { trail = null; offSince = now; }
+          return;
+        }
+        if (!trail) {
+          trail = [x, y];
+          if (now - offSince > REENTER) spawn(x, y, 1);   // a quick pass over an eye isn't a new touch
+          return;
+        }
+        if (Math.hypot(x - trail[0], y - trail[1]) < WAVE_TRAIL) return;
+        trail = [x, y];
+        spawn(x, y, 0.45);
+      };
+      const onLeave = () => {
+        if (trail) { trail = null; offSince = performance.now() / 1000; }
+      };
 
       readTheme();
       resize();
       const ro = new ResizeObserver(() => { resize(); kick(); });
       ro.observe(wrap);
-      const mo = new MutationObserver(() => { readTheme(); kick(); });
+      const mo = new MutationObserver(() => { readTheme(); build(); kick(); });
       mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
       const io = new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) kick(); });
       io.observe(wrap);
       wrap.addEventListener('pointermove', onMove);
-      wrap.addEventListener('pointerdown', onDown);
-      wrap.addEventListener('pointerup', onUp);
-      wrap.addEventListener('pointercancel', onUp);
+      wrap.addEventListener('pointerdown', onMove);   // a tap on a phone touches the art too
       wrap.addEventListener('pointerleave', onLeave);
       introRef.current.redraw = kick;   // the entrance tween nudges static renders
       kick();
@@ -357,16 +444,13 @@
         if (raf) cancelAnimationFrame(raf);
         ro.disconnect(); mo.disconnect(); io.disconnect();
         wrap.removeEventListener('pointermove', onMove);
-        wrap.removeEventListener('pointerdown', onDown);
-        wrap.removeEventListener('pointerup', onUp);
-        wrap.removeEventListener('pointercancel', onUp);
+        wrap.removeEventListener('pointerdown', onMove);
         wrap.removeEventListener('pointerleave', onLeave);
       };
     }, []);
 
     return (
-      <div className="ak-hero-globe" ref={wrapRef} data-cursor="drag" data-cursor-label="‹ spin ›"
-        role="img" aria-label="A slowly turning dotted globe">
+      <div className="ak-hero-portrait" ref={wrapRef} role="img" aria-label="Dotted portrait of Abdurohman Karim">
         <canvas ref={canvasRef} />
         <span className="ak-hero-probe" ref={probeRef} />
       </div>
@@ -407,6 +491,8 @@
       gsap.set($('.ak-hero-ch'), { yPercent: 115 });
       gsap.set($('.ak-hero-banner, .ak-hero-role, .ak-hero-pitch, .ak-hero-cta > *, .ak-hero-meta'), { opacity: 0, y: 16 });
       gsap.set($('.ak-hero-scroll'), { opacity: 0 });   // scroll cue keeps its CSS centring transform
+      /* the signature is written in, left to right (the inset leaves room for the swashes) */
+      gsap.set($('.ak-hero-sign'), { clipPath: 'inset(-40% 100% -40% -20%)' });
 
       let tl = null;
       const cancel = whenStageClear(() => {
@@ -424,15 +510,18 @@
           .to($('.ak-hero-pitch'), { opacity: 1, y: 0, duration: 0.7 }, 0.7)
           .to($('.ak-hero-cta > *'), { opacity: 1, y: 0, duration: 0.6, stagger: 0.08 }, 0.85)
           .to($('.ak-hero-meta'), { opacity: 1, y: 0, duration: 0.6 }, 1.0)
-          .to($('.ak-hero-scroll'), { opacity: 1, duration: 0.8 }, 1.2);
+          .to($('.ak-hero-scroll'), { opacity: 1, duration: 0.8 }, 1.2)
+          .to($('.ak-hero-sign'), {
+            clipPath: 'inset(-40% -20% -40% -20%)', duration: 1.5, ease: 'power2.inOut', clearProps: 'clipPath',
+          }, 1.3);
       });
 
-      /* scroll out: the copy lifts and fades, the globe sinks and shrinks */
+      /* scroll out: the copy lifts and fades, the portrait sinks and shrinks */
       const out = gsap.timeline({
         scrollTrigger: { trigger: root, start: 'top top', end: 'bottom top', scrub: 0.5 },
       });
       out.to(root.querySelector('.ak-hero-copy'), { y: -90, opacity: 0.15, ease: 'none' }, 0)
-        .to(root.querySelector('.ak-hero-globe'), { y: 70, scale: 0.9, opacity: 0.25, ease: 'none' }, 0);
+        .to(root.querySelector('.ak-hero-art'), { y: 70, scale: 0.9, opacity: 0.25, ease: 'none' }, 0);
 
       return () => {
         cancel();
@@ -482,7 +571,10 @@
               <span>PHP · Laravel · Python</span>
             </div>
           </div>
-          <Globe introRef={introRef} />
+          <figure className="ak-hero-art">
+            <Portrait introRef={introRef} />
+            <figcaption className="ak-hero-sign" aria-hidden="true"><span /></figcaption>
+          </figure>
         </div>
 
         <div className="ak-hero-scroll">scroll<span /></div>
