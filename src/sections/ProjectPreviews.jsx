@@ -419,7 +419,149 @@
     );
   }
 
+  /* ── Lunex: an expense by voice → today's ring shrinks → outbox syncs →
+        Smart Save tops up the goal → the assistant answers with a chart ── */
+  const RING_R = 36;
+  const RING_C = 2 * Math.PI * RING_R;
+  const CAFES = [36, 42, 40, 30];   // cafés by month, Jul → Oct
+  function LunexPreview({ apiRef }) {
+    const id = useUid('lx');
+    const root = usePreviewTimeline(apiRef, (q) => {
+      gsap.set(q('.l-ring'), { attr: { 'stroke-dashoffset': RING_C } });
+      gsap.set(q('.l-n1, .l-n2, .l-g2, .l-row, .l-save, .l-consent'), { opacity: 0 });
+      gsap.set(q('.l-voice'), { opacity: 0, x: -6 });
+      gsap.set(q('.l-save'), { y: 6 });
+      gsap.set(q('.l-ping'), { opacity: 0, transformOrigin: '50% 50%' });
+      gsap.set(q('.l-packet'), { x: 150, y: 54, opacity: 0 });
+      gsap.set(q('.l-goal'), { attr: { width: 0 } });
+      gsap.set(q('.l-type'), { attr: { width: 0 } });
+      gsap.set(q('.l-bar'), { scaleY: 0, transformOrigin: '50% 100%' });
+
+      const tl = loop();
+      tl.to(q('.l-ring'), { attr: { 'stroke-dashoffset': RING_C * 0.19 }, duration: 0.9, ease: 'power2.inOut' })
+        .to(q('.l-n1'), { opacity: 1, duration: 0.3 }, '<0.3')
+        .to(q('.l-goal'), { attr: { width: 64 }, duration: 0.8 }, '<')
+        /* «coffee 48 000» said into the phone */
+        .to(q('.l-voice'), { opacity: 1, x: 0, duration: 0.35 }, '+=0.3')
+        .set(q('.l-ping-plus'), { opacity: 0.8, scale: 1 })
+        .to(q('.l-ping-plus'), { opacity: 0, scale: 1.6, duration: 0.5 }, '<')
+        .to(q('.l-voice'), { opacity: 0, x: -10, duration: 0.3 }, '+=0.5')
+        .to(q('.l-rows'), { y: 18, duration: 0.35, ease: 'power3.inOut' }, '<')
+        .to(q('.l-row'), { opacity: 1, duration: 0.3 }, '<0.15')
+        .to(q('.l-ring'), { attr: { 'stroke-dashoffset': RING_C * 0.32 }, duration: 0.6 }, '<')
+        .to(q('.l-n1'), { opacity: 0, duration: 0.2 }, '<')
+        .to(q('.l-n2'), { opacity: 1, duration: 0.25 }, '<0.15')
+        /* the outbox goes to the API */
+        .to(q('.l-packet'), { opacity: 1, duration: 0.1 }, '+=0.2')
+        .to(q('.l-packet'), { x: 290, duration: 0.7, ease: 'power2.inOut' })
+        .to(q('.l-packet'), { opacity: 0, duration: 0.1 })
+        .set(q('.l-ping-api'), { opacity: 0.8, scale: 1 }, '<')
+        .to(q('.l-ping-api'), { opacity: 0, scale: 1.12, duration: 0.5 }, '<')
+        /* a BullMQ job offers Smart Save; the goal moves */
+        .set(q('.l-packet'), { x: 440 })
+        .to(q('.l-packet'), { opacity: 1, duration: 0.1 }, '+=0.1')
+        .to(q('.l-packet'), { x: 464, duration: 0.35 })
+        .to(q('.l-packet'), { opacity: 0, duration: 0.1 })
+        .to(q('.l-save'), { opacity: 1, y: 0, duration: 0.35 }, '<')
+        .to(q('.l-goal'), { attr: { width: 66 }, duration: 0.4 }, '+=0.2')
+        .to(q('.l-g1'), { opacity: 0, duration: 0.15 }, '<')
+        .to(q('.l-g2'), { opacity: 1, duration: 0.2 }, '<0.1')
+        /* the assistant answers from the user's figures */
+        .to(q('.l-type'), { attr: { width: 236 }, duration: 1.0, ease: 'steps(38)' }, '+=0.1')
+        .to(q('.l-bar'), { scaleY: 1, duration: 0.4, stagger: 0.08, ease: 'power3.out' }, '<0.2')
+        .to(q('.l-consent'), { opacity: 1, duration: 0.3 })
+        .addLabel('still', '+=0.2')
+        .to(q('.l-fade'), { opacity: 0, duration: 0.45 }, '+=1.6');
+      return tl;
+    });
+
+    return (
+      <svg ref={root} viewBox="0 0 640 250" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <defs>
+          <clipPath id={`${id}-type`}><rect className="l-type" x="168" y="186" width="0" height="16" /></clipPath>
+        </defs>
+
+        {/* phone: today's ring and the operations */}
+        <Box x={16} y={8} w={128} h={234} r={22} />
+        <rect x="58" y="16" width="44" height="6" rx="3" style={{ fill: INK.line }} />
+        <T x={30} y={42} size={8} c="faint" ls="0.14em">LUNEX · TODAY</T>
+        <circle cx="80" cy="92" r={RING_R} style={{ fill: 'none', stroke: INK.soft, strokeWidth: 5 }} />
+        <T x={80} y={84} size={6.5} c="faint" anchor="middle" ls="0.1em">SAFE TO SPEND</T>
+        <T x={80} y={112} size={7.5} c="muted" anchor="middle">UZS</T>
+        <T x={28} y={144} size={7.5} c="faint" ls="0.14em">TODAY</T>
+        <circle cx="120" cy="222" r="10" style={{ fill: INK.hi }} />
+        <circle className="l-ping l-ping-plus" cx="120" cy="222" r="10" style={{ fill: 'none', stroke: INK.hi }} />
+        <T x={120} y={226.5} size={13} c="bg" anchor="middle" weight={600}>+</T>
+
+        {/* sync: outbox → API → Smart Save */}
+        <T x={160} y={42} size={8} c="faint" ls="0.14em">OUTBOX → /sync/push</T>
+        <line x1="150" y1="54" x2="290" y2="54" style={{ stroke: INK.line, strokeDasharray: '3 4' }} />
+        <line x1="440" y1="54" x2="464" y2="54" style={{ stroke: INK.line, strokeDasharray: '3 4' }} />
+        <Box x={290} y={26} w={150} h={56} stroke="hi" />
+        <rect className="l-ping l-ping-api" x="290" y="26" width="150" height="56" rx="10" style={{ fill: 'none', stroke: INK.hi }} />
+        <T x={304} y={47} size={8.5} c="faint" ls="0.14em">LUNEX API</T>
+        <T x={304} y={68} size={10.5} c="hi">NestJS · BullMQ</T>
+        <g className="l-packet">
+          <circle r="9" style={{ fill: INK.hi, opacity: 0.16 }} />
+          <circle r="4" style={{ fill: INK.hi }} />
+        </g>
+
+        <T x={464} y={106} size={8.5} c="faint" ls="0.14em">GOAL · NEW IPHONE</T>
+        <rect x="464" y="113" width="160" height="5" rx="2.5" style={{ fill: INK.soft }} />
+        <T x={168} y={176} size={8.5} c="faint" ls="0.14em">✦ ASSISTANT · CLAUDE</T>
+        <T x={464} y={168} size={8.5} c="faint" ls="0.14em">CAFÉS / MONTH</T>
+        {['JUL', 'AUG', 'SEP', 'OCT'].map((m, k) => (
+          <T key={m} x={482 + k * 40} y={238} size={7.5} c="faint" anchor="middle" ls="0.1em">{m}</T>
+        ))}
+
+        <g className="l-fade">
+          <circle className="l-ring" cx="80" cy="92" r={RING_R} transform="rotate(-90 80 92)"
+            style={{ fill: 'none', stroke: INK.hi, strokeWidth: 5, strokeLinecap: 'round', strokeDasharray: RING_C }} />
+          <g className="l-n1"><T x={80} y={99} size={12.5} c="hi" anchor="middle" weight={600}>307 636</T></g>
+          <g className="l-n2"><T x={80} y={99} size={12.5} c="hi" anchor="middle" weight={600}>259 636</T></g>
+
+          <g className="l-row">
+            <T x={28} y={162} size={8.5}>Cafés</T>
+            <T x={132} y={162} size={8.5} c="hi" anchor="end">−48 000</T>
+          </g>
+          <g className="l-rows">
+            <T x={28} y={162} size={8.5} c="muted">Taxi</T>
+            <T x={132} y={162} size={8.5} c="muted" anchor="end">−23 000</T>
+            <T x={28} y={180} size={8.5} c="muted">Groceries</T>
+            <T x={132} y={180} size={8.5} c="muted" anchor="end">−186 000</T>
+          </g>
+
+          <g className="l-voice">
+            <rect x="156" y="132" width="128" height="24" rx="12" style={{ fill: INK.panel, stroke: INK.hi }} />
+            <circle cx="170" cy="144" r="4.5" style={{ fill: INK.hi }} />
+            <T x={182} y={147.5} size={9.5} c="hi">«coffee 48 000»</T>
+          </g>
+
+          <g className="l-save">
+            <Box x={464} y={26} w={160} h={56} stroke="hi" />
+            <T x={478} y={47} size={8.5} c="faint" ls="0.14em">SMART SAVE · 08:00</T>
+            <T x={478} y={68} size={10.5} c="hi">+161 000 → iPhone</T>
+          </g>
+          <rect className="l-goal" x="464" y="113" width="0" height="5" rx="2.5" style={{ fill: INK.hi }} />
+          {[25, 50, 75].map((m) => <circle key={m} cx={464 + m * 1.6} cy="115.5" r="1.4" style={{ fill: INK.bg }} />)}
+          <g className="l-g1"><T x={624} y={106} size={8.5} c="text" anchor="end">40%</T></g>
+          <g className="l-g2"><T x={624} y={106} size={8.5} c="hi" anchor="end">41%</T></g>
+
+          <g clipPath={`url(#${id}-type)`}>
+            <T x={168} y={198} size={10}>cafés −18% vs Sep · ≈300k by month end</T>
+          </g>
+          <g className="l-consent"><T x={168} y={220} size={8.5} c="faint" ls="0.06em">with consent · never used for training</T></g>
+          {CAFES.map((h, k) => (
+            <rect key={k} className="l-bar" x={470 + k * 40} y={226 - h} width="24" height={h} rx="3"
+              style={{ fill: k === CAFES.length - 1 ? INK.hi : INK.line }} />
+          ))}
+        </g>
+      </svg>
+    );
+  }
+
   window.AkPreviews = {
+    lunex: LunexPreview,
     ucash: UcashPreview,
     coddle: CoddlePreview,
     nutricore: NutriPreview,

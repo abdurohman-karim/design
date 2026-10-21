@@ -8,7 +8,9 @@
 (() => {
   const { SectionHeading, Tag, Icon } = window.DS;
 
-  /* Visual order = numbering. size: xl 7/12 · lg 5/12 · md 4/12 */
+  /* Visual order = numbering. size: xl 7/12 · lg 5/12 · half 6/12 · md 4/12.
+     Rows: uCash + Coddle · NutriCore + Lunex · Downloader + MJ Bazaar; on tablets
+     xl takes the row and the rest pair up, so no row is left half empty. */
   const PROJECTS = [
     {
       title: 'uCash', size: 'xl', preview: 'ucash',
@@ -39,7 +41,7 @@
       stack: ['TypeScript', 'Next.js', 'NestJS', 'Prisma', 'PostgreSQL', 'Redis', 'Docker'],
     },
     {
-      title: 'NutriCore', size: 'md', preview: 'nutricore',
+      title: 'NutriCore', size: 'lg', preview: 'nutricore',
       kind: 'AI nutrition assistant · Python / Telegram',
       href: 'https://t.me/nutricoreuz_bot',
       description: 'Telegram nutrition assistant powered by a multi-provider LLM router with flexible subscriptions.',
@@ -52,7 +54,21 @@
       stack: ['Python', 'aiogram', 'PostgreSQL', 'Redis'],
     },
     {
-      title: 'Downloader', size: 'md', preview: 'downloader',
+      title: 'Lunex Finance', size: 'xl', preview: 'lunex',
+      kind: 'Personal finance · iOS / NestJS',
+      href: 'https://lunex.my',
+      description: 'Native iPhone app that shows how much you can safely spend today, fills savings goals on its own and answers money questions with an AI assistant — offline-first, in Uzbek, Russian and English.',
+      features: [
+        'Daily "safe to spend" limit — one formula on device and server, shared test cases',
+        'Offline-first SwiftData with an idempotent outbox sync to NestJS',
+        'Smart Save, auto-save rules and round-ups as BullMQ jobs',
+        'Claude assistant with tools over the user\'s data, behind explicit consent',
+        'Voice & receipt input (Speech, VisionKit), widgets, Siri, StoreKit 2',
+      ],
+      stack: ['Swift', 'SwiftUI', 'NestJS', 'Prisma', 'PostgreSQL', 'Redis', 'Claude'],
+    },
+    {
+      title: 'Downloader', size: 'half', preview: 'downloader',
       kind: 'Telegram bot · aiogram 3 / yt-dlp',
       href: 'https://t.me/keepdownload_bot',
       description: 'High-throughput Telegram bot that downloads Instagram / TikTok video with quality selection.',
@@ -65,7 +81,7 @@
       stack: ['Python', 'aiogram', 'yt-dlp', 'aiosqlite'],
     },
     {
-      title: 'MJ Bazaar', size: 'md', preview: 'bazaar',
+      title: 'MJ Bazaar', size: 'half', preview: 'bazaar',
       kind: 'E-commerce storefront · Laravel',
       href: 'https://apps.apple.com/us/app/mj-bazaar/id6784791264',
       description: 'Laravel e-commerce build with Uzbekistan geodata and config-switchable ordering.',
@@ -96,12 +112,13 @@
       .ak-proj { position: relative; min-width: 0; grid-column: span 4; }
       .ak-proj--xl { grid-column: span 7; }
       .ak-proj--lg { grid-column: span 5; }
+      .ak-proj--half { grid-column: span 6; }
       @media (max-width: 1024px) {
-        .ak-proj, .ak-proj--lg { grid-column: span 6; }
+        .ak-proj, .ak-proj--lg, .ak-proj--half { grid-column: span 6; }
         .ak-proj--xl { grid-column: span 12; }
       }
       @media (max-width: 700px) {
-        .ak-proj, .ak-proj--lg, .ak-proj--xl { grid-column: span 12; }
+        .ak-proj, .ak-proj--lg, .ak-proj--half, .ak-proj--xl { grid-column: span 12; }
       }
 
       .ak-proj-shell {
@@ -389,7 +406,7 @@
         <div style={{ maxWidth: 'var(--container-max)', margin: '0 auto', padding: '0 var(--container-pad)' }}>
           <SectionHeading index={3} title="Projects"
             code={<><span style={{ color: 'var(--gray-400)' }}>console.log</span>(<span style={{ color: 'var(--gray-300)' }}>'Projects'</span>)</>}
-            lede="Selected fintech & AI systems — payments, LLM routing, automation and storefronts." />
+            lede="Selected fintech & AI systems — payments, personal finance, LLM routing, automation and storefronts." />
           <div className="ak-proj-grid" ref={gridRef}>
             {PROJECTS.map((p) => <ProjectTile key={p.title} p={p} />)}
           </div>
